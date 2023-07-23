@@ -34,7 +34,7 @@ const drawBoardTo =
 const drawStatsTo =
   (target: HTMLElement) =>
   (state: State): void => {
-    let html = '<div id="next">'
+    let html = ''
 
     const linesCleared = viewLinesCleared(state)
     const level = getLevel(linesCleared)
@@ -52,6 +52,7 @@ const drawStatsTo =
         .sort((a, b) => b - a)
     }
 
+    html += '<div id="next">'
     for (const row of nextMatrix) {
       html += '<div class="row">'
       for (const cell of row) {
