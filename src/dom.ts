@@ -30,7 +30,7 @@ const drawTo =
       previousBestScores = previousBestScores
         .concat(lastScore)
         .slice(0, 5)
-        .sort((a, b) => a - b)
+        .sort((a, b) => b - a)
     }
 
     html += '<div id="stats"><div id="next">'
