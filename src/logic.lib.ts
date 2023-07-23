@@ -8,7 +8,6 @@ import {
   Board,
   Cell,
   EMPTY_CELL,
-  Matrix,
   Rotation,
   Sequence,
   State,
