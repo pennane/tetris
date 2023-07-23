@@ -21,7 +21,8 @@ import {
   mergeTetronimoToBoard,
   moveDown,
   shouldPlaceDown,
-  linesClearedToSpeed
+  linesClearedToSpeed,
+  getLevel
 } from './logic.lib'
 import { EMPTY_CELL, State, Action, StateTransformation } from './model'
 import './style.css'
@@ -43,7 +44,8 @@ const clearFullRows = overScoreAndBoardAndLinesCleared(
     )
 
     const amountCleared = board.length - filtered.length
-    const additionalScore = LINES_CLEARED_TO_SCORE[amountCleared] ?? 0
+    const additionalScore =
+      (LINES_CLEARED_TO_SCORE[amountCleared] ?? 0) * getLevel(linesCleared)
 
     return [
       score + additionalScore,
