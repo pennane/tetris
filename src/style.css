@@ -33,16 +33,31 @@ body {
   justify-content: center;
   align-items: center;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+}
+
+#game {
+  display: flex;
+  gap: 1rem;
+  background-color: hsl(237 92% 2% / 1);
+}
+
+#game > div {
+  background-color: hsl(237 92% 0% / 1);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(255 244 244 / 10%);
+  padding: 1rem;
 }
 
 #board {
   display: flex;
   flex-direction: column;
-  background-color: hsl(237 92% 0% / 1);
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
-    0 2px 4px -2px rgb(255 244 244 / 10%);
-  padding: 1rem;
+}
+
+#stats {
+  width: 6rem;
+  display: flex;
+  justify-content: center;
 }
 
 #before-start {
