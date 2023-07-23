@@ -1,0 +1,106 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: #b7bcc3;
+  background-color: #010218;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+h1 {
+  color: white;
+  font-size: 2.5rem;
+  letter-spacing: -0.05em;
+}
+
+#app {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+#board {
+  display: flex;
+  flex-direction: column;
+  background-color: hsl(237 92% 0% / 1);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(255 244 244 / 10%);
+  padding: 1rem;
+}
+
+#before-start {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #000000;
+}
+
+#before-start p {
+  font-weight: 500;
+  font-size: 1rem;
+  margin: 1rem;
+  color: hsl(237deg 92% 95% / 88%);
+  text-align: center;
+  font-style: italic;
+}
+
+.shortcut {
+  display: inline-block;
+  background-color: rgb(255 255 255 / 10%);
+  padding: 0 0.25rem;
+  border-radius: 0.25rem;
+  margin: 0.2rem;
+  font-size: 0.9rem;
+  color: hsl(233 100% 98% / 1);
+  outline: 1px solid rgb(255 255 255 / 20%);
+}
+
+.row {
+  display: flex;
+}
+
+.cell {
+  width: 1rem;
+  height: 1rem;
+  outline: 0.1px solid hsl(237 52% 22% / 1);
+}
+
+.cell.E {
+  background-color: transparent;
+}
+
+.cell.I {
+  background-color: cyan;
+}
+.cell.O {
+  background-color: yellow;
+}
+.cell.T {
+  background-color: purple;
+}
+.cell.S {
+  background-color: green;
+}
+.cell.Z {
+  background-color: red;
+}
+.cell.J {
+  background-color: blue;
+}
+.cell.L {
+  background-color: orange;
+}
