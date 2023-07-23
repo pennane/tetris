@@ -1,6 +1,7 @@
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
+  DEFAULT_CLEARED_LINES,
   DEFAULT_SCORE,
   DEFAULT_SPEED,
   TETRONIMO_MATRICES,
@@ -10,8 +11,10 @@ import {
   Board,
   Cell,
   EMPTY_CELL,
+  LinesCleared,
   Rotation,
   Sequence,
+  Speed,
   State,
   StatePredicate,
   StateTransformation,
@@ -28,10 +31,7 @@ import {
   overTetronimoRow,
   setNextFall,
   viewBoard,
-  viewNextFall,
-  viewSequence,
   viewSpeed,
-  viewTetronimo,
   viewTetronimoColumn,
   viewTetronimoMatrix,
   viewTetronimoRow,
@@ -105,6 +105,14 @@ export const decreaseMoveTimer: StateTransformation = (state) => {
   return overNextFall(R.ifElse(R.gt(R.__, 0), R.dec, R.always(speed)), state)
 }
 
+export const getLevel = (linesCleared: LinesCleared) =>
+  Math.min(Math.floor(linesCleared / 10), DEFAULT_SPEED)
+
+export const linesClearedToSpeed = (linesCleared: LinesCleared): Speed => {
+  const levels = Math.floor(linesCleared / 10)
+  return Math.max(DEFAULT_SPEED - levels, 3)
+}
+
 export const mergeTetronimoToBoard = (
   board: Board,
   tetronimo: Tetronimo
@@ -126,7 +134,8 @@ export const createInitialState = (): State => {
     DEFAULT_SPEED,
     tail,
     DEFAULT_SPEED,
-    DEFAULT_SCORE
+    DEFAULT_SCORE,
+    DEFAULT_CLEARED_LINES
   ]
 }
 

@@ -1,14 +1,5 @@
 import * as R from 'ramda'
-import {
-  State,
-  Row,
-  Rotation,
-  Column,
-  Matrix,
-  Board,
-  Score,
-  TetrominoCell
-} from './model'
+import { State, Row, Rotation, Column, Matrix, TetrominoCell } from './model'
 import { TETRONIMO_MATRICES } from './constants'
 import { Lens } from 'ramda'
 
@@ -67,16 +58,25 @@ export const viewScore = R.view(scoreLens)
 export const overScore = R.over(scoreLens)
 export const setSScore = R.set(scoreLens)
 
-const overAandB =
+const linesClearedLens = R.lensIndex<State, 6>(6)
+export const viewLinesCleared = R.view(linesClearedLens)
+export const overLinesCleared = R.over(linesClearedLens)
+export const setLinesCleared = R.set(linesClearedLens)
+
+const overAandBandC =
   <A>(a: Lens<State, A>) =>
   <B>(b: Lens<State, B>) =>
-  (f: (a: A, b: B) => [a: A, b: B]) =>
+  <C>(c: Lens<State, C>) =>
+  (f: (a: A, b: B, c: C) => [a: A, b: B, c: C]) =>
   (state: State) => {
     const aInitial = R.view(a, state)
     const bInitial = R.view(b, state)
-    const [aAfter, bAfter] = f(aInitial, bInitial)
-    return R.pipe(R.set(a, aAfter), R.set(b, bAfter))(state)
+    const cInitial = R.view(c, state)
+    const [aAfter, bAfter, cAfter] = f(aInitial, bInitial, cInitial)
+    return R.pipe(R.set(a, aAfter), R.set(b, bAfter), R.set(c, cAfter))(state)
   }
 
-const overScoreAnd = overAandB(scoreLens)
-export const overScoreAndBoard = overScoreAnd(boardLens)
+const overScoreAnd = overAandBandC(scoreLens)
+const overScoreAndBoard = overScoreAnd(boardLens)
+export const overScoreAndBoardAndLinesCleared =
+  overScoreAndBoard(linesClearedLens)

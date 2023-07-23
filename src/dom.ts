@@ -1,6 +1,12 @@
 import { TETRONIMO_MATRICES } from './constants'
-import { viewBoard, viewScore, viewSequence, viewTetronimo } from './logic.lens'
-import { mergeTetronimoToBoard } from './logic.lib'
+import {
+  viewBoard,
+  viewLinesCleared,
+  viewScore,
+  viewSequence,
+  viewTetronimo
+} from './logic.lens'
+import { getLevel, mergeTetronimoToBoard } from './logic.lib'
 import { EMPTY_CELL, Score, State } from './model'
 
 let lastSequenceLength: number | null = null
@@ -29,6 +35,10 @@ const drawStatsTo =
   (target: HTMLElement) =>
   (state: State): void => {
     let html = '<div id="next">'
+
+    const linesCleared = viewLinesCleared(state)
+    const level = getLevel(linesCleared)
+    html += `<div id="state"><span id="level">LVL ${level}</span><span id="lines-cleared">(${linesCleared})</span></div>`
 
     const nextTetronimo = viewSequence(state)[0]
     const nextMatrix = TETRONIMO_MATRICES[0][nextTetronimo]

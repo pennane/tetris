@@ -7,7 +7,9 @@ import {
   viewSequence,
   setTetronimo,
   setSequence,
-  overScoreAndBoard
+  overScoreAndBoardAndLinesCleared,
+  viewLinesCleared,
+  setSpeed
 } from './logic.lens'
 import {
   createInitialState,
@@ -18,7 +20,8 @@ import {
   isValidState,
   mergeTetronimoToBoard,
   moveDown,
-  shouldPlaceDown
+  shouldPlaceDown,
+  linesClearedToSpeed
 } from './logic.lib'
 import { EMPTY_CELL, State, Action, StateTransformation } from './model'
 import './style.css'
@@ -33,19 +36,22 @@ const placeDown: StateTransformation = (state) => {
   return setBoard(mergedBoard, state)
 }
 
-const clearFullRows = overScoreAndBoard((score, board) => {
-  const filtered = board.filter((row) =>
-    row.some((cell) => cell === EMPTY_CELL)
-  )
+const clearFullRows = overScoreAndBoardAndLinesCleared(
+  (score, board, linesCleared) => {
+    const filtered = board.filter((row) =>
+      row.some((cell) => cell === EMPTY_CELL)
+    )
 
-  const amountCleared = board.length - filtered.length
-  const additionalScore = LINES_CLEARED_TO_SCORE[amountCleared] ?? 0
+    const amountCleared = board.length - filtered.length
+    const additionalScore = LINES_CLEARED_TO_SCORE[amountCleared] ?? 0
 
-  return [
-    score + additionalScore,
-    R.repeat(createEmptyRow(), amountCleared).concat(filtered)
-  ]
-})
+    return [
+      score + additionalScore,
+      R.repeat(createEmptyRow(), amountCleared).concat(filtered),
+      linesCleared + amountCleared
+    ]
+  }
+)
 
 const nextTetronimo: StateTransformation = (state) => {
   const [head, ...tail] = viewSequence(state)
@@ -57,11 +63,22 @@ const nextTetronimo: StateTransformation = (state) => {
 
 const checkGameOver = R.when(isFailState, createInitialState)
 
+const updateCurrentLevel: StateTransformation = (state) => {
+  const linesCleared = viewLinesCleared(state)
+  return setSpeed(linesClearedToSpeed(linesCleared), state)
+}
+
 const handleFall = R.when(
   R.pipe(viewNextFall, R.equals(0)),
   R.ifElse(
     shouldPlaceDown,
-    R.pipe(placeDown, nextTetronimo, clearFullRows, checkGameOver),
+    R.pipe(
+      placeDown,
+      nextTetronimo,
+      clearFullRows,
+      checkGameOver,
+      updateCurrentLevel
+    ),
     moveDown
   )
 )

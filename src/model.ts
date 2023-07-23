@@ -36,8 +36,17 @@ export type NextFall = number
 export type Sequence = TetrominoCell[]
 export type Speed = number
 export type Score = number
+export type LinesCleared = number
 
-export type State = [Board, Tetronimo, NextFall, Sequence, Speed, Score]
+export type State = [
+  Board,
+  Tetronimo,
+  NextFall,
+  Sequence,
+  Speed,
+  Score,
+  LinesCleared
+]
 
 export type StateTransformation = (state: State) => State
 export type StatePredicate = (state: State) => boolean
