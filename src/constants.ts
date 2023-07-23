@@ -12,9 +12,14 @@ import { rotate90, rotate180, rotate270 } from './util'
 export const BOARD_WIDTH = 10
 export const BOARD_HEIGHT = 20
 
-export const DEFAULT_SPEED = 20
+export const DEFAULT_SPEED = 60
 export const DEFAULT_SCORE = 0
 export const DEFAULT_CLEARED_LINES = 0
+
+export const MAX_LEVEL = 15
+export const MAX_SPEED = 3
+
+export const SPEED_INCREASE_PER_LEVEL = (DEFAULT_SPEED - MAX_SPEED) / MAX_LEVEL
 
 const BASE_TETRONIMO_MATRICES: Record<TetrominoCell, Matrix> = {
   [TetrominoCell.I]: [

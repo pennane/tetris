@@ -4,6 +4,9 @@ import {
   DEFAULT_CLEARED_LINES,
   DEFAULT_SCORE,
   DEFAULT_SPEED,
+  MAX_LEVEL,
+  MAX_SPEED,
+  SPEED_INCREASE_PER_LEVEL,
   TETRONIMO_MATRICES,
   TETRONIMO_TO_INSTANT_DROP_SCORE
 } from './constants'
@@ -106,11 +109,16 @@ export const decreaseMoveTimer: StateTransformation = (state) => {
 }
 
 export const getLevel = (linesCleared: LinesCleared) =>
-  Math.min(Math.floor(linesCleared / 10), DEFAULT_SPEED)
+  Math.min(Math.floor(linesCleared / 10), MAX_LEVEL)
 
 export const linesClearedToSpeed = (linesCleared: LinesCleared): Speed => {
-  const levels = Math.floor(linesCleared / 10)
-  return Math.max(DEFAULT_SPEED - levels, 3)
+  const levels = getLevel(linesCleared)
+
+  const speed = Math.round(
+    Math.max(DEFAULT_SPEED - levels * SPEED_INCREASE_PER_LEVEL, MAX_SPEED)
+  )
+  console.log(SPEED_INCREASE_PER_LEVEL, speed)
+  return speed
 }
 
 export const mergeTetronimoToBoard = (
