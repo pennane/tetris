@@ -51,8 +51,8 @@ const drawBoardTo =
     if (score < lastScore) {
       previousBestScores = previousBestScores
         .concat(lastScore)
-        .slice(0, 5)
         .sort((a, b) => b - a)
+        .slice(0, 5)
       storeScoresToLocalStorage(previousBestScores)
     }
     lastScore = score
