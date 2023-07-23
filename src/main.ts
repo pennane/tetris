@@ -1,5 +1,5 @@
 import { KEY_TO_ACTION } from './constants'
-import { drawToDom } from './dom'
+import { draw } from './dom'
 import { nextState } from './logic'
 import { createInitialState } from './logic.lib'
 import { Action, State } from './model'
@@ -13,11 +13,9 @@ const queueAction = (e: KeyboardEvent) => {
   e.preventDefault()
   queuedAction = action
 }
-let shouldPause = false
 
 const gameLoop = (state: State) => {
-  if (shouldPause) return
-  drawToDom(state)
+  draw(state)
   queuedAction = null
   requestAnimationFrame(() => gameLoop(nextState(state, queuedAction)))
 }

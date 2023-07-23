@@ -3,15 +3,17 @@ import { viewBoard, viewScore, viewSequence, viewTetronimo } from './logic.lens'
 import { mergeTetronimoToBoard } from './logic.lib'
 import { EMPTY_CELL, Score, State } from './model'
 
+let lastSequenceLength: number | null = null
 let lastScore = 0
 let previousBestScores: Score[] = []
 
-const gameElement = document.getElementById('game')!
-const drawTo =
+const boardElement = document.getElementById('board')!
+const statsElement = document.getElementById('stats')!
+const drawBoardTo =
   (target: HTMLElement) =>
   (state: State): void => {
     const board = mergeTetronimoToBoard(viewBoard(state), viewTetronimo(state))
-    let html = '<div id="board">'
+    let html = ''
     for (const row of board) {
       html += '<div class="row">'
       for (const cell of row) {
@@ -19,7 +21,14 @@ const drawTo =
       }
       html += '</div>'
     }
-    html += '</div>'
+
+    target.innerHTML = html
+  }
+
+const drawStatsTo =
+  (target: HTMLElement) =>
+  (state: State): void => {
+    let html = '<div id="next">'
 
     const nextTetronimo = viewSequence(state)[0]
     const nextMatrix = TETRONIMO_MATRICES[0][nextTetronimo]
@@ -33,7 +42,6 @@ const drawTo =
         .sort((a, b) => b - a)
     }
 
-    html += '<div id="stats"><div id="next">'
     for (const row of nextMatrix) {
       html += '<div class="row">'
       for (const cell of row) {
@@ -45,11 +53,21 @@ const drawTo =
 
     html += `<div id="previous">${previousBestScores
       .map((s) => `<span>${s}</span>`)
-      .join('')}</div >`
+      .join('')}</div>`
 
     target.innerHTML = html
 
     lastScore = score
   }
 
-export const drawToDom = drawTo(gameElement)
+const drawBoardToDom = drawBoardTo(boardElement)
+const drawStatsToDom = drawStatsTo(statsElement)
+
+export const draw = (state: State) => {
+  drawBoardToDom(state)
+  const sequenceLength = viewSequence(state).length
+  if (lastSequenceLength !== sequenceLength) {
+    drawStatsToDom(state)
+    lastSequenceLength = sequenceLength
+  }
+}
