@@ -1,7 +1,10 @@
 import { TETRONIMO_MATRICES } from './constants'
-import { viewBoard, viewSequence, viewTetronimo } from './logic.lens'
+import { viewBoard, viewScore, viewSequence, viewTetronimo } from './logic.lens'
 import { mergeTetronimoToBoard } from './logic.lib'
-import { EMPTY_CELL, State } from './model'
+import { EMPTY_CELL, Score, State } from './model'
+
+let lastScore = 0
+let previousBestScores: Score[] = []
 
 const gameElement = document.getElementById('game')!
 const drawTo =
@@ -21,6 +24,15 @@ const drawTo =
     const nextTetronimo = viewSequence(state)[0]
     const nextMatrix = TETRONIMO_MATRICES[0][nextTetronimo]
 
+    const score = viewScore(state)
+
+    if (score < lastScore) {
+      previousBestScores = previousBestScores
+        .concat(lastScore)
+        .slice(0, 5)
+        .sort((a, b) => a - b)
+    }
+
     html += '<div id="stats"><div id="next">'
     for (const row of nextMatrix) {
       html += '<div class="row">'
@@ -29,9 +41,15 @@ const drawTo =
       }
       html += '</div>'
     }
-    html += '</div></div>'
+    html += `</div><div id="score">${score}</div>`
+
+    html += `<div id="previous">${previousBestScores
+      .map((s) => `<span>${s}</span>`)
+      .join('')}</div >`
 
     target.innerHTML = html
+
+    lastScore = score
   }
 
 export const drawToDom = drawTo(gameElement)

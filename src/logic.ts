@@ -1,4 +1,4 @@
-import { ACTION_TO_TRANSFORMATION } from './constants'
+import { ACTION_TO_TRANSFORMATION, LINES_CLEARED_TO_SCORE } from './constants'
 import {
   viewBoard,
   viewTetronimo,
@@ -7,7 +7,7 @@ import {
   viewSequence,
   setTetronimo,
   setSequence,
-  overBoard
+  overScoreAndBoard
 } from './logic.lens'
 import {
   createInitialState,
@@ -33,13 +33,18 @@ const placeDown: StateTransformation = (state) => {
   return setBoard(mergedBoard, state)
 }
 
-const clearFullRows = overBoard((board) => {
+const clearFullRows = overScoreAndBoard((score, board) => {
   const filtered = board.filter((row) =>
     row.some((cell) => cell === EMPTY_CELL)
   )
-  return R.repeat(createEmptyRow(), board.length - filtered.length).concat(
-    filtered
-  )
+
+  const amountCleared = board.length - filtered.length
+  const additionalScore = LINES_CLEARED_TO_SCORE[amountCleared] ?? 0
+
+  return [
+    score + additionalScore,
+    R.repeat(createEmptyRow(), amountCleared).concat(filtered)
+  ]
 })
 
 const nextTetronimo: StateTransformation = (state) => {

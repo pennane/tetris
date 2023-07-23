@@ -1,5 +1,11 @@
 import { rotate, moveLeft, moveRight, moveDown, instantDrop } from './logic.lib'
-import { TetrominoCell, Matrix, Action, StateTransformation } from './model'
+import {
+  TetrominoCell,
+  Matrix,
+  Action,
+  StateTransformation,
+  Score
+} from './model'
 import * as R from 'ramda'
 import { rotate90, rotate180, rotate270 } from './util'
 
@@ -7,6 +13,7 @@ export const BOARD_WIDTH = 10
 export const BOARD_HEIGHT = 20
 
 export const DEFAULT_SPEED = 15
+export const DEFAULT_SCORE = 0
 
 const BASE_TETRONIMO_MATRICES: Record<TetrominoCell, Matrix> = {
   [TetrominoCell.I]: [
@@ -70,4 +77,24 @@ export const ACTION_TO_TRANSFORMATION: Record<Action, StateTransformation> = {
   [Action.RIGHT]: moveRight,
   [Action.DOWN]: moveDown,
   [Action.JUMP]: instantDrop
+}
+
+export const LINES_CLEARED_TO_SCORE: Record<number, number> = {
+  1: 40,
+  2: 100,
+  3: 300,
+  4: 1200
+}
+
+const countMatrixCells = (matrix: Matrix) =>
+  matrix.flatMap((row) => row.filter((cell) => cell === 1)).length
+
+export const TETRONIMO_TO_INSTANT_DROP_SCORE: Record<TetrominoCell, Score> = {
+  [TetrominoCell.I]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.I]),
+  [TetrominoCell.J]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.J]),
+  [TetrominoCell.L]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.L]),
+  [TetrominoCell.O]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.O]),
+  [TetrominoCell.S]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.S]),
+  [TetrominoCell.T]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.T]),
+  [TetrominoCell.Z]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.Z])
 }

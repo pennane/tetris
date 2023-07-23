@@ -13,8 +13,10 @@ const queueAction = (e: KeyboardEvent) => {
   e.preventDefault()
   queuedAction = action
 }
+let shouldPause = false
 
 const gameLoop = (state: State) => {
+  if (shouldPause) return
   drawToDom(state)
   queuedAction = null
   requestAnimationFrame(() => gameLoop(nextState(state, queuedAction)))

@@ -1,8 +1,10 @@
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
+  DEFAULT_SCORE,
   DEFAULT_SPEED,
-  TETRONIMO_MATRICES
+  TETRONIMO_MATRICES,
+  TETRONIMO_TO_INSTANT_DROP_SCORE
 } from './constants'
 import {
   Board,
@@ -21,13 +23,19 @@ import { mergeMatrices, shuffle, randomInt, asLongAs } from './util'
 import {
   overNextFall,
   overRotation,
+  overScore,
   overTetronimoColumn,
   overTetronimoRow,
+  setNextFall,
   viewBoard,
+  viewNextFall,
+  viewSequence,
   viewSpeed,
+  viewTetronimo,
   viewTetronimoColumn,
   viewTetronimoMatrix,
-  viewTetronimoRow
+  viewTetronimoRow,
+  viewTetronimoType
 } from './logic.lens'
 
 export const isFailState = R.pipe(
@@ -83,7 +91,14 @@ export const rotate = overRotation(R.pipe(R.inc, toRotation))
 export const moveDown = overTetronimoRow(R.inc)
 export const moveLeft = overTetronimoColumn(R.dec)
 export const moveRight = overTetronimoColumn(R.inc)
-export const instantDrop = asLongAs(isValidState, moveDown)
+export const instantDrop = R.pipe(
+  setNextFall(1),
+  asLongAs(isValidState, moveDown),
+  (state: State) => {
+    const tetronimo = viewTetronimoType(state)
+    return overScore(R.add(TETRONIMO_TO_INSTANT_DROP_SCORE[tetronimo]), state)
+  }
+)
 
 export const decreaseMoveTimer: StateTransformation = (state) => {
   const speed = viewSpeed(state)
@@ -111,7 +126,7 @@ export const createInitialState = (): State => {
     DEFAULT_SPEED,
     tail,
     DEFAULT_SPEED,
-    0
+    DEFAULT_SCORE
   ]
 }
 

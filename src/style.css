@@ -38,7 +38,6 @@ body {
 
 #game {
   display: flex;
-  gap: 1rem;
   background-color: hsl(237 92% 2% / 1);
 }
 
@@ -46,18 +45,36 @@ body {
   background-color: hsl(237 92% 0% / 1);
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
     0 2px 4px -2px rgb(255 244 244 / 10%);
-  padding: 1rem;
 }
 
 #board {
   display: flex;
   flex-direction: column;
+  padding: 1rem;
 }
 
 #stats {
-  width: 6rem;
   display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  padding-left: 0;
+}
+
+#next {
+  width: 6rem;
+  height: 6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+}
+
+#score {
+  text-align: center;
+  font-weight: 800;
+  color: #3be29e;
 }
 
 #before-start {
@@ -76,6 +93,18 @@ body {
   color: hsl(237deg 92% 95% / 88%);
   text-align: center;
   font-style: italic;
+}
+
+#previous {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  font-weight: 300;
+  color: gray;
+}
+
+#previous span {
+  display: block;
 }
 
 footer {
