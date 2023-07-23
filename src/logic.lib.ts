@@ -117,7 +117,6 @@ export const linesClearedToSpeed = (linesCleared: LinesCleared): Speed => {
   const speed = Math.round(
     Math.max(DEFAULT_SPEED - levels * SPEED_INCREASE_PER_LEVEL, MAX_SPEED)
   )
-  console.log(SPEED_INCREASE_PER_LEVEL, speed)
   return speed
 }
 
