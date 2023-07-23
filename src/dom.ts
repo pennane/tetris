@@ -9,9 +9,26 @@ import {
 import { getLevel, mergeTetronimoToBoard } from './logic.lib'
 import { EMPTY_CELL, Score, State } from './model'
 
+const STORAGE_KEY = 'pennanen-dev-tetris-score'
+
 let lastSequenceLength: number | null = null
 let lastScore = 0
-let previousBestScores: Score[] = []
+
+const storeScoresToLocalStorage = (scores: Score[]) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(scores))
+}
+
+const loadScoresFromLocalStorage = (): Score[] => {
+  try {
+    const scores = JSON.parse(localStorage.getItem(STORAGE_KEY) || '')
+    if (!Array.isArray(scores)) return []
+    return scores.filter((s) => typeof s === 'number')
+  } catch {
+    return []
+  }
+}
+
+let previousBestScores: Score[] = loadScoresFromLocalStorage()
 
 const boardElement = document.getElementById('board')!
 const statsElement = document.getElementById('stats')!
@@ -50,6 +67,7 @@ const drawStatsTo =
         .concat(lastScore)
         .slice(0, 5)
         .sort((a, b) => b - a)
+      storeScoresToLocalStorage(previousBestScores)
     }
 
     html += '<div id="next">'
