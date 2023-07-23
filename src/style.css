@@ -88,6 +88,13 @@ footer {
   right: 0;
 }
 
+footer > a {
+  text-decoration: underline;
+  color: #b7bcc3;
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
 .shortcut {
   display: inline-block;
   background-color: rgb(255 255 255 / 10%);
