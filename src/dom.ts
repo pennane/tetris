@@ -46,6 +46,16 @@ const drawBoardTo =
     }
 
     target.innerHTML = html
+    const score = viewScore(state)
+
+    if (score < lastScore) {
+      previousBestScores = previousBestScores
+        .concat(lastScore)
+        .slice(0, 5)
+        .sort((a, b) => b - a)
+      storeScoresToLocalStorage(previousBestScores)
+    }
+    lastScore = score
   }
 
 const drawStatsTo =
@@ -62,14 +72,6 @@ const drawStatsTo =
 
     const score = viewScore(state)
 
-    if (score < lastScore) {
-      previousBestScores = previousBestScores
-        .concat(lastScore)
-        .slice(0, 5)
-        .sort((a, b) => b - a)
-      storeScoresToLocalStorage(previousBestScores)
-    }
-
     html += '<div id="next">'
     for (const row of nextMatrix) {
       html += '<div class="row">'
@@ -85,8 +87,6 @@ const drawStatsTo =
       .join('')}</div>`
 
     target.innerHTML = html
-
-    lastScore = score
   }
 
 const drawBoardToDom = drawBoardTo(boardElement)
