@@ -4,9 +4,7 @@ import {
   DEFAULT_CLEARED_LINES,
   DEFAULT_SCORE,
   DEFAULT_SPEED,
-  MAX_LEVEL,
   MAX_SPEED,
-  MIN_LEVEL,
   SPEED_INCREASE_PER_LEVEL,
   TETRONIMO_MATRICES,
   TETRONIMO_TO_INSTANT_DROP_SCORE
@@ -16,7 +14,6 @@ import {
   Cell,
   EMPTY_CELL,
   Level,
-  LinesCleared,
   Rotation,
   Sequence,
   Speed,

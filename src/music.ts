@@ -67,7 +67,6 @@ const playIndefinite = (notes: Note[]) => {
       })
     )
     .forEach((note) => {
-      console.log(note[1])
       lastOscillator = playNote(note, currentTime)
       currentTime += note[1]
     })
