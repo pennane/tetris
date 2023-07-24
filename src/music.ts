@@ -11,6 +11,8 @@ import { NoteWithOctave, Note } from './music.model'
 
 const audioContext = new AudioContext()
 
+const globalGain = audioContext.createGain()
+
 const distortion = audioContext.createWaveShaper()
 
 distortion.curve = createDistortionCurve(20)
@@ -46,7 +48,8 @@ const playNote = (note: Note, time: number) => {
 
   oscillator.connect(gainNode)
   gainNode.connect(distortion)
-  distortion.connect(audioContext.destination)
+  distortion.connect(globalGain)
+  globalGain.connect(audioContext.destination)
 
   oscillator.start(time)
   oscillator.stop(time + note[1])
@@ -75,3 +78,4 @@ const playIndefinite = (notes: Note[]) => {
 
 // Call the function to play notes
 export const startSoundtrack = () => playIndefinite(WRANGLED_TETRIS_NOTES)
+export const setGlobalGain = (gain: number) => (globalGain.gain.value = gain)

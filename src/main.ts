@@ -3,7 +3,7 @@ import { draw } from './dom'
 import { nextState } from './logic'
 import { createInitialState } from './logic.lib'
 import { Action, State } from './logic.model.ts'
-import { startSoundtrack } from './music.ts'
+import { setGlobalGain, startSoundtrack } from './music.ts'
 
 let queuedAction: Action | null = null
 // Export state for external imperative bs
@@ -34,3 +34,12 @@ const startGameLoop = (e: KeyboardEvent) => {
 }
 
 window.addEventListener('keydown', startGameLoop)
+
+const musicCheckbox = document.getElementById(
+  'music-checkbox'
+)! as HTMLInputElement
+
+musicCheckbox.addEventListener('change', function () {
+  setGlobalGain(musicCheckbox.checked ? 0.5 : 0)
+})
+setGlobalGain(musicCheckbox.checked ? 0.5 : 0)
