@@ -6,6 +6,7 @@ import {
   DEFAULT_SPEED,
   MAX_LEVEL,
   MAX_SPEED,
+  MIN_LEVEL,
   SPEED_INCREASE_PER_LEVEL,
   TETRONIMO_MATRICES,
   TETRONIMO_TO_INSTANT_DROP_SCORE
@@ -109,7 +110,7 @@ export const decreaseMoveTimer: StateTransformation = (state) => {
 }
 
 export const getLevel = (linesCleared: LinesCleared) =>
-  Math.min(Math.floor(linesCleared / 10), MAX_LEVEL)
+  Math.min(Math.floor(linesCleared / 10) + MIN_LEVEL, MAX_LEVEL)
 
 export const linesClearedToSpeed = (linesCleared: LinesCleared): Speed => {
   const levels = getLevel(linesCleared)
