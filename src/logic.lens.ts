@@ -1,6 +1,14 @@
 import * as R from 'ramda'
-import { State, Row, Rotation, Column, Matrix, TetrominoCell } from './model'
-import { TETRONIMO_MATRICES } from './constants'
+import {
+  State,
+  Row,
+  Rotation,
+  Column,
+  Matrix,
+  TetrominoCell,
+  LinesCleared
+} from './logic.model'
+import { MAX_LEVEL, MIN_LEVEL, TETRONIMO_MATRICES } from './logic.constants'
 import { Lens } from 'ramda'
 
 const tetronimoLens = R.lensIndex<State, 1>(1)
@@ -62,6 +70,10 @@ const linesClearedLens = R.lensIndex<State, 6>(6)
 export const viewLinesCleared = R.view(linesClearedLens)
 export const overLinesCleared = R.over(linesClearedLens)
 export const setLinesCleared = R.set(linesClearedLens)
+
+export const linesClearedToLevel = (linesCleared: LinesCleared) =>
+  Math.min(Math.floor(linesCleared / 10) + MIN_LEVEL, MAX_LEVEL)
+export const viewLevel = R.pipe(viewLinesCleared, linesClearedToLevel)
 
 const overAandBandC =
   <A>(a: Lens<State, A>) =>

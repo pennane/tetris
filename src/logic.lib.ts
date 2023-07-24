@@ -10,11 +10,12 @@ import {
   SPEED_INCREASE_PER_LEVEL,
   TETRONIMO_MATRICES,
   TETRONIMO_TO_INSTANT_DROP_SCORE
-} from './constants'
+} from './logic.constants'
 import {
   Board,
   Cell,
   EMPTY_CELL,
+  Level,
   LinesCleared,
   Rotation,
   Sequence,
@@ -24,7 +25,7 @@ import {
   StateTransformation,
   TetrominoCell,
   Tetronimo
-} from './model'
+} from './logic.model'
 import * as R from 'ramda'
 import { mergeMatrices, shuffle, randomInt, asLongAs } from './util'
 import {
@@ -109,12 +110,7 @@ export const decreaseMoveTimer: StateTransformation = (state) => {
   return overNextFall(R.ifElse(R.gt(R.__, 0), R.dec, R.always(speed)), state)
 }
 
-export const getLevel = (linesCleared: LinesCleared) =>
-  Math.min(Math.floor(linesCleared / 10) + MIN_LEVEL, MAX_LEVEL)
-
-export const linesClearedToSpeed = (linesCleared: LinesCleared): Speed => {
-  const levels = getLevel(linesCleared)
-
+export const levelToSpeed = (levels: Level): Speed => {
   const speed = Math.round(
     Math.max(DEFAULT_SPEED - levels * SPEED_INCREASE_PER_LEVEL, MAX_SPEED)
   )

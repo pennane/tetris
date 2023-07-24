@@ -1,4 +1,7 @@
-import { ACTION_TO_TRANSFORMATION, LINES_CLEARED_TO_SCORE } from './constants'
+import {
+  ACTION_TO_TRANSFORMATION,
+  LINES_CLEARED_TO_SCORE
+} from './logic.constants'
 import {
   viewBoard,
   viewTetronimo,
@@ -8,8 +11,9 @@ import {
   setTetronimo,
   setSequence,
   overScoreAndBoardAndLinesCleared,
-  viewLinesCleared,
-  setSpeed
+  setSpeed,
+  viewLevel,
+  linesClearedToLevel
 } from './logic.lens'
 import {
   createInitialState,
@@ -21,10 +25,9 @@ import {
   mergeTetronimoToBoard,
   moveDown,
   shouldPlaceDown,
-  linesClearedToSpeed,
-  getLevel
+  levelToSpeed
 } from './logic.lib'
-import { EMPTY_CELL, State, Action, StateTransformation } from './model'
+import { EMPTY_CELL, State, Action, StateTransformation } from './logic.model'
 import './style.css'
 import * as R from 'ramda'
 
@@ -45,7 +48,8 @@ const clearFullRows = overScoreAndBoardAndLinesCleared(
 
     const amountCleared = board.length - filtered.length
     const additionalScore =
-      (LINES_CLEARED_TO_SCORE[amountCleared] ?? 0) * getLevel(linesCleared)
+      (LINES_CLEARED_TO_SCORE[amountCleared] ?? 0) *
+      linesClearedToLevel(linesCleared)
 
     return [
       score + additionalScore,
@@ -65,10 +69,8 @@ const nextTetronimo: StateTransformation = (state) => {
 
 const checkGameOver = R.when(isFailState, createInitialState)
 
-const updateCurrentLevel: StateTransformation = (state) => {
-  const linesCleared = viewLinesCleared(state)
-  return setSpeed(linesClearedToSpeed(linesCleared), state)
-}
+const updateCurrentLevel: StateTransformation = (state) =>
+  setSpeed(levelToSpeed(viewLevel(state)), state)
 
 const handleFall = R.when(
   R.pipe(viewNextFall, R.equals(0)),

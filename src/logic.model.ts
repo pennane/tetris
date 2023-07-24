@@ -37,6 +37,7 @@ export type Sequence = TetrominoCell[]
 export type Speed = number
 export type Score = number
 export type LinesCleared = number
+export type Level = number
 
 export type State = [
   Board,

@@ -1,13 +1,14 @@
-import { TETRONIMO_MATRICES } from './constants'
+import { TETRONIMO_MATRICES } from './logic.constants'
 import {
   viewBoard,
+  viewLevel,
   viewLinesCleared,
   viewScore,
   viewSequence,
   viewTetronimo
 } from './logic.lens'
-import { getLevel, mergeTetronimoToBoard } from './logic.lib'
-import { EMPTY_CELL, Score, State } from './model'
+import { mergeTetronimoToBoard } from './logic.lib'
+import { EMPTY_CELL, Score, State } from './logic.model'
 
 const STORAGE_KEY = 'pennanen-dev-tetris-score'
 
@@ -64,7 +65,7 @@ const drawStatsTo =
     let html = ''
 
     const linesCleared = viewLinesCleared(state)
-    const level = getLevel(linesCleared)
+    const level = viewLevel(state)
     html += `<div id="state"><span id="level">LVL ${level}</span><span id="lines-cleared">(${linesCleared})</span></div>`
 
     const nextTetronimo = viewSequence(state)[0]

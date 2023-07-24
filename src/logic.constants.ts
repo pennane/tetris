@@ -5,7 +5,7 @@ import {
   Action,
   StateTransformation,
   Score
-} from './model'
+} from './logic.model'
 import * as R from 'ramda'
 import { rotate90, rotate180, rotate270 } from './util'
 

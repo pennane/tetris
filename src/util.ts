@@ -1,4 +1,4 @@
-import { GenericMatrix } from './model'
+import { GenericMatrix } from './logic.model'
 import * as R from 'ramda'
 
 export const asLongAs =
@@ -51,3 +51,13 @@ export const rotate90 = <T>(m: GenericMatrix<T>): GenericMatrix<T> => {
 }
 export const rotate180 = R.pipe(rotate90, rotate90)
 export const rotate270 = R.pipe(rotate90, rotate90, rotate90)
+
+export const mapToNewRange = (
+  number: number,
+  inMin: number,
+  inMax: number,
+  outMin: number,
+  outMax: number
+) => {
+  return ((number - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin
+}
