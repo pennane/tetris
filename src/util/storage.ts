@@ -1,7 +1,7 @@
 export const STORAGE_BASE_KEY = 'pennanen-dev-tetris-' as const
 
-export const store = (value: string, key: string) => {
-  localStorage.setItem(STORAGE_BASE_KEY.concat(key), value)
+export const store = (value: unknown, key: string) => {
+  localStorage.setItem(STORAGE_BASE_KEY.concat(key), JSON.stringify(value))
 }
 
 export const load = <T>(key: string, parser: (v: unknown) => T): T => {

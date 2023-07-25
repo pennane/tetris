@@ -1,5 +1,5 @@
 import { viewLevel } from '../logic/logic.lens'
-import { CURRENT_STATE } from '../main'
+import { M_CURRENT_STATE } from '../main'
 import {
   LEVEL_TO_NOTE_TRANSFORMER,
   NOTE_TO_HZ,
@@ -68,10 +68,10 @@ const playIndefinite = (notes: Note[]) => {
   let lastOscillator: OscillatorNode | null = null
 
   notes
-    .map(LEVEL_TO_NOTE_TRANSFORMER(viewLevel(CURRENT_STATE)))
+    .map(LEVEL_TO_NOTE_TRANSFORMER(viewLevel(M_CURRENT_STATE)))
     .map(
       overDuration((s) => {
-        const level = viewLevel(CURRENT_STATE)
+        const level = viewLevel(M_CURRENT_STATE)
         return s * levelToMusicSpeedMultiplier(level)
       })
     )

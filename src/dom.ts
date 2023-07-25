@@ -1,4 +1,7 @@
-import { TETRONIMO_MATRICES } from './logic/logic.constants'
+import {
+  PERSISTED_STATE_STORAGE_KEY,
+  TETRONIMO_MATRICES
+} from './logic/logic.constants'
 import {
   viewBoard,
   viewTetronimo,
@@ -17,7 +20,7 @@ let lastSequenceLength: number | null = null
 let lastScore = 0
 
 const storeScoresToLocalStorage = (scores: Score[]) => {
-  store(JSON.stringify(scores), SCORE_STORAGE_KEY)
+  store(scores, SCORE_STORAGE_KEY)
 }
 
 const loadScoresFromLocalStorage = (): Score[] => {
@@ -92,10 +95,11 @@ const drawStatsTo =
 const drawBoardToDom = drawBoardTo(boardElement)
 const drawStatsToDom = drawStatsTo(statsElement)
 
-export const draw = (state: State) => {
+export const drawAndPersist = (state: State) => {
   drawBoardToDom(state)
   const sequenceLength = viewSequence(state).length
   if (lastSequenceLength !== sequenceLength) {
+    store(state, PERSISTED_STATE_STORAGE_KEY)
     drawStatsToDom(state)
     lastSequenceLength = sequenceLength
   }

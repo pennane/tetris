@@ -4,6 +4,8 @@ import { Note, NoteWithOctave } from './music.model'
 import { Level } from '../logic/logic.model'
 import { overVolume, setPlaymode, setWaveform } from './music.lens'
 
+export const MUSIC_STATE_STORAGE_KEY = 'music-state'
+
 export const SLOWEST_MUSIC = 1.25
 export const FASTEST_MUSIC = 0.1
 
