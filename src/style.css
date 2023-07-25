@@ -11,6 +11,14 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+
+  --cyan: rgb(14, 235, 235);
+  --red: #ff0801;
+  --blue: #0279ff;
+  --green: #02f11c;
+  --yellow: #ffef02;
+  --orange: #ff7f00;
+  --purple: #a800fe;
 }
 
 * {
@@ -157,33 +165,44 @@ footer > a {
 }
 
 .cell {
+  border-width: 0.5rem;
   width: 1rem;
   height: 1rem;
-  outline: 0.1px solid hsl(237 52% 22% / 1);
+  box-sizing: border-box;
+  border-style: ridge;
 }
 
 .cell.E {
   background-color: transparent;
+  border-color: transparent;
+  outline: 0.1px solid hsl(237 52% 22% / 1);
 }
 
 .cell.I {
-  background-color: cyan;
+  background-color: var(--cyan);
+  border-color: var(--cyan);
 }
 .cell.O {
-  background-color: yellow;
+  background-color: var(--yellow);
+  border-color: var(--yellow);
 }
 .cell.T {
-  background-color: purple;
+  background-color: var(--purple);
+  border-color: var(--purple);
 }
 .cell.S {
-  background-color: green;
+  background-color: var(--green);
+  border-color: var(--green);
 }
 .cell.Z {
-  background-color: red;
+  background-color: var(--red);
+  border-color: var(--red);
 }
 .cell.J {
-  background-color: blue;
+  background-color: var(--blue);
+  border-color: var(--blue);
 }
 .cell.L {
-  background-color: orange;
+  background-color: var(--orange);
+  border-color: var(--orange);
 }
