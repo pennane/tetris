@@ -1,7 +1,8 @@
 import { createNote, increaseStepBy } from './music.lib'
 import * as R from 'ramda'
 import { Note, NoteWithOctave } from './music.model'
-import { Level } from './logic.model'
+import { Level } from '../logic/logic.model'
+import { overVolume, setPlaymode, setWaveform } from './music.lens'
 
 export const SLOWEST_MUSIC = 1.25
 export const FASTEST_MUSIC = 0.1
@@ -98,51 +99,31 @@ export const TETRIS_NOTES: Note[] = [
   GAP_FOURTH
 ]
 
-export const LEVEL_TO_NOTE_TRANSFORMER = (
-  level: Level
-): ((note: Note, index: number) => Note) => {
-  if (level === 1) {
-    return R.identity
-  } else if (level === 2) {
-    return (n) => [n[0], n[1], n[2] * 1.1, n[3], 'sawtooth']
-  } else if (level === 3) {
-    return (n) => [n[0], n[1], n[2], n[3], 'sawtooth']
-  } else if (level <= 5) {
-    return (n, i) => [
-      n[0],
-      n[1],
-      n[2] * Math.sin(Math.sin(i)) + 0.01,
-      n[3],
-      'sawtooth'
-    ]
-  } else if (level === 6) {
-    return (n, i) => [
-      n[0],
-      n[1],
-      Math.sin(i + n[2]) + 0.01,
-      'normal',
-      'sawtooth'
-    ]
-  } else if (level <= 8) {
-    return R.pipe(
-      (n: Note, i: number): Note => [
-        n[0],
-        n[1],
-        n[2] + Math.sin(i) + 0.01,
-        'normal',
-        'sawtooth'
-      ],
-      increaseStepBy(2)
-    )
-  }
-  return R.pipe(
-    (n: Note, i: number): Note => [
-      n[0],
-      n[1],
-      Math.min(n[2] + Math.tan(i) + 0.01, 2),
-      'decay',
-      'sawtooth'
-    ],
-    increaseStepBy(14)
+export const LEVEL_ONE_TETRIS_NOTES = TETRIS_NOTES.map(
+  R.pipe(increaseStepBy(-24), setPlaymode('decay'), setWaveform('sine'))
+)
+
+type NoteTransformer = (n: Note) => Note
+const LEVEL_NOTE_TRANSFORMERS: Array<[Level, NoteTransformer]> = [
+  [2, overVolume(R.multiply(1.1))],
+  [3, R.pipe(overVolume(R.multiply(1.1)), setWaveform('triangle'))],
+  [5, R.pipe(overVolume(R.add(0.05)), setWaveform('sine'))],
+  [6, setWaveform('sawtooth')],
+  [7, increaseStepBy(2)],
+  [8, setPlaymode('decay')],
+  [9, overVolume(R.add(0.1))],
+  [10, increaseStepBy(2)],
+  [11, setPlaymode('both')],
+  [12, increaseStepBy(-12)],
+  [13, setWaveform('square')]
+]
+
+export const LEVEL_TO_NOTE_TRANSFORMER = (level: number) =>
+  R.reduce(
+    (composed, [target, transformer]) => {
+      if (level >= target) return R.pipe(composed, transformer)
+      else return R.reduced(composed)
+    },
+    R.identity as NoteTransformer,
+    LEVEL_NOTE_TRANSFORMERS
   )
-}

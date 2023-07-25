@@ -1,13 +1,17 @@
-import { KEY_TO_ACTION } from './logic.constants.ts'
+import { KEY_TO_ACTION } from './logic/logic.constants.ts'
 import { draw } from './dom'
-import { nextState } from './logic'
-import { createInitialState } from './logic.lib'
-import { Action, State } from './logic.model.ts'
-import { setGlobalGain, startSoundtrack } from './music.ts'
+import './style.css'
 
-let queuedAction: Action | null = null
+import { setGlobalGain, startSoundtrack } from './music/music.ts'
+import { createInitialState } from './logic/logic.lib.ts'
+import { Action, State } from './logic/logic.model.ts'
+import { nextState } from './logic/logic.ts'
+import { load, store } from './util/storage.ts'
+
 // Export state for external imperative bs
 export let CURRENT_STATE: State
+
+let queuedAction: Action | null = null
 
 const queueAction = (e: KeyboardEvent) => {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
@@ -39,7 +43,16 @@ const musicCheckbox = document.getElementById(
   'music-checkbox'
 )! as HTMLInputElement
 
-musicCheckbox.addEventListener('change', function () {
-  setGlobalGain(musicCheckbox.checked ? 0.5 : 0)
+const MUSIC_STATE_STORAGE_KEY = 'music-state'
+
+musicCheckbox.checked = load(MUSIC_STATE_STORAGE_KEY, (v) =>
+  typeof v === 'boolean' ? v : false
+)
+
+musicCheckbox.addEventListener('change', () => {
+  const checked = musicCheckbox.checked
+  setGlobalGain(checked ? 0.5 : 0)
+  store(JSON.stringify(checked), MUSIC_STATE_STORAGE_KEY)
 })
+
 setGlobalGain(musicCheckbox.checked ? 0.5 : 0)

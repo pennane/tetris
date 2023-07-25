@@ -1,32 +1,31 @@
-import { TETRONIMO_MATRICES } from './logic.constants'
+import { TETRONIMO_MATRICES } from './logic/logic.constants'
 import {
   viewBoard,
-  viewLevel,
-  viewLinesCleared,
+  viewTetronimo,
   viewScore,
-  viewSequence,
-  viewTetronimo
-} from './logic.lens'
-import { mergeTetronimoToBoard } from './logic.lib'
-import { EMPTY_CELL, Score, State } from './logic.model'
+  viewLinesCleared,
+  viewLevel,
+  viewSequence
+} from './logic/logic.lens'
+import { mergeTetronimoToBoard } from './logic/logic.lib'
+import { Score, State, EMPTY_CELL } from './logic/logic.model'
+import { load, store } from './util/storage'
 
-const STORAGE_KEY = 'pennanen-dev-tetris-score'
+const SCORE_STORAGE_KEY = 'score'
 
 let lastSequenceLength: number | null = null
 let lastScore = 0
 
 const storeScoresToLocalStorage = (scores: Score[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(scores))
+  store(JSON.stringify(scores), SCORE_STORAGE_KEY)
 }
 
 const loadScoresFromLocalStorage = (): Score[] => {
-  try {
-    const scores = JSON.parse(localStorage.getItem(STORAGE_KEY) || '')
-    if (!Array.isArray(scores)) return []
-    return scores.filter((s) => typeof s === 'number')
-  } catch {
-    return []
-  }
+  const scores = load(SCORE_STORAGE_KEY, (v) => {
+    if (!Array.isArray(v)) return []
+    return v.filter((s): s is number => typeof s === 'number')
+  })
+  return scores
 }
 
 let previousBestScores: Score[] = loadScoresFromLocalStorage()

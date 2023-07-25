@@ -1,15 +1,15 @@
-import { MAX_LEVEL, MIN_LEVEL } from './logic.constants'
-import { Level } from './logic.model'
+import { MIN_LEVEL, MAX_LEVEL } from '../logic/logic.constants'
+import { Level } from '../logic/logic.model'
+import { mapToNewRange } from '../util/fp'
 import {
   A4,
-  FASTEST_MUSIC,
-  NOTE_BASES,
+  TWELTH_ROOT_OF_2,
   SLOWEST_MUSIC,
-  TWELTH_ROOT_OF_2
+  FASTEST_MUSIC,
+  NOTE_BASES
 } from './music.constants'
 import { overNote } from './music.lens'
 import { NoteWithOctave } from './music.model'
-import { mapToNewRange } from './util'
 
 export const createNote = (n: number) => A4 * TWELTH_ROOT_OF_2 ** n
 
@@ -18,21 +18,31 @@ export const levelToMusicSpeedMultiplier = (level: Level) =>
 
 export const increaseStepBy = (steps: number) =>
   overNote((noteWithOctave) => {
-    let [note, octave] = noteWithOctave.split('')
+    let note: string, octave: string
+
+    if (noteWithOctave.charAt(1) === '#') {
+      note = noteWithOctave.slice(0, 2)
+      octave = noteWithOctave.slice(2)
+    } else {
+      note = noteWithOctave.charAt(0)
+      octave = noteWithOctave.charAt(1)
+    }
+
     const baseIndex = NOTE_BASES.findIndex((n) => n === note)
     const maxIndex = NOTE_BASES.length - 1
     let stepped = 0
     let newIndex = baseIndex
     let newOctave = parseInt(octave)
     while (steps !== stepped) {
-      stepped++
       if (steps < 0) {
+        stepped--
         newIndex--
         if (newIndex < 0) {
           newIndex = maxIndex
           newOctave--
         }
       } else {
+        stepped++
         newIndex++
         if (newIndex > maxIndex) {
           newIndex = 0

@@ -24,7 +24,6 @@ import {
   Tetronimo
 } from './logic.model'
 import * as R from 'ramda'
-import { mergeMatrices, shuffle, randomInt, asLongAs } from './util'
 import {
   overNextFall,
   overRotation,
@@ -39,6 +38,9 @@ import {
   viewTetronimoRow,
   viewTetronimoType
 } from './logic.lens'
+import { asLongAs } from '../util/fp'
+import { mergeMatrices } from '../util/matrix'
+import { shuffle, randomInt } from '../util/random'
 
 export const isFailState = R.pipe(
   viewBoard,

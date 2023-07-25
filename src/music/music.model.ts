@@ -10,7 +10,7 @@ export type NoteWithOctave = `${(typeof NOTE_BASES)[number]}${
   | 6
   | 7}`
 
-export type PlayMode = 'normal' | 'decay' | 'attack'
+export type PlayMode = 'normal' | 'decay' | 'attack' | 'both'
 export type Duration = number
 export type Volume = number
 export type Note = [NoteWithOctave, Duration, Volume, PlayMode, OscillatorType]

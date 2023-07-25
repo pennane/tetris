@@ -28,7 +28,7 @@ import {
   levelToSpeed
 } from './logic.lib'
 import { EMPTY_CELL, State, Action, StateTransformation } from './logic.model'
-import './style.css'
+
 import * as R from 'ramda'
 
 const placeDown: StateTransformation = (state) => {

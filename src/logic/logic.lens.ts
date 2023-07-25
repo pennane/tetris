@@ -8,7 +8,12 @@ import {
   TetrominoCell,
   LinesCleared
 } from './logic.model'
-import { MAX_LEVEL, MIN_LEVEL, TETRONIMO_MATRICES } from './logic.constants'
+import {
+  LINES_CLEARED_PER_LEVEL,
+  MAX_LEVEL,
+  MIN_LEVEL,
+  TETRONIMO_MATRICES
+} from './logic.constants'
 import { Lens } from 'ramda'
 
 const tetronimoLens = R.lensIndex<State, 1>(1)
@@ -72,7 +77,10 @@ export const overLinesCleared = R.over(linesClearedLens)
 export const setLinesCleared = R.set(linesClearedLens)
 
 export const linesClearedToLevel = (linesCleared: LinesCleared) =>
-  Math.min(Math.floor(linesCleared / 10) + MIN_LEVEL, MAX_LEVEL)
+  Math.min(
+    Math.floor(linesCleared / LINES_CLEARED_PER_LEVEL) + MIN_LEVEL,
+    MAX_LEVEL
+  )
 export const viewLevel = R.pipe(viewLinesCleared, linesClearedToLevel)
 
 const overAandBandC =

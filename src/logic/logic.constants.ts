@@ -1,3 +1,4 @@
+import { rotate90, rotate180, rotate270 } from '../util/matrix'
 import { rotate, moveLeft, moveRight, moveDown, instantDrop } from './logic.lib'
 import {
   TetrominoCell,
@@ -7,7 +8,6 @@ import {
   Score
 } from './logic.model'
 import * as R from 'ramda'
-import { rotate90, rotate180, rotate270 } from './util'
 
 export const BOARD_WIDTH = 10
 export const BOARD_HEIGHT = 20
@@ -19,6 +19,8 @@ export const DEFAULT_CLEARED_LINES = 0
 export const MIN_LEVEL = 1
 export const MAX_LEVEL = 15
 export const MAX_SPEED = 3
+
+export const LINES_CLEARED_PER_LEVEL = 10
 
 export const SPEED_INCREASE_PER_LEVEL =
   (DEFAULT_SPEED - MAX_SPEED) / (MAX_LEVEL - MIN_LEVEL)
