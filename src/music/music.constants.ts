@@ -106,8 +106,8 @@ export const LEVEL_ONE_TETRIS_NOTES = TETRIS_NOTES.map(
 type NoteTransformer = (n: Note) => Note
 const LEVEL_NOTE_TRANSFORMERS: Array<[Level, NoteTransformer]> = [
   [2, overVolume(R.multiply(1.1))],
-  [3, R.pipe(overVolume(R.multiply(1.1)), setWaveform('triangle'))],
-  [5, R.pipe(overVolume(R.add(0.05)), setWaveform('sine'))],
+  [3, R.pipe(overVolume(R.multiply(1.2)), setWaveform('square'))],
+  [5, R.pipe(overVolume(R.add(0.1)), setWaveform('sine'))],
   [6, setWaveform('sawtooth')],
   [7, increaseStepBy(2)],
   [8, setPlaymode('decay')],
