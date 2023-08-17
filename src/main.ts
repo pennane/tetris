@@ -34,7 +34,9 @@ const gameLoop = (state: State) => {
   M_CURRENT_STATE = state
   M_QUEUED_ACTION = null
 
-  requestAnimationFrame(() => gameLoop(nextState(state, M_QUEUED_ACTION)))
+  requestAnimationFrame((timestamp) =>
+    gameLoop(nextState(state, M_QUEUED_ACTION, timestamp))
+  )
 }
 
 const startGameLoop = (e: KeyboardEvent) => {
@@ -42,7 +44,9 @@ const startGameLoop = (e: KeyboardEvent) => {
   e.preventDefault()
 
   const persistedState = load(PERSISTED_STATE_STORAGE_KEY, (v): State | null =>
-    Array.isArray(v) ? (v as State) : null
+    typeof v === 'object' && !Array.isArray(v) && v !== null
+      ? (v as State)
+      : null
   )
 
   gameLoop(persistedState || createInitialState())

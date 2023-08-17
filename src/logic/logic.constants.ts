@@ -9,6 +9,8 @@ import {
 } from './logic.model'
 import * as R from 'ramda'
 
+export const EXECUTE_INTERVAL_MS = 16
+
 export const PERSISTED_STATE_STORAGE_KEY = 'persisted-game-state'
 
 export const BOARD_WIDTH = 10

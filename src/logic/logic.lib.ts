@@ -19,7 +19,6 @@ import {
   Speed,
   State,
   StatePredicate,
-  StateTransformation,
   TetrominoCell,
   Tetronimo
 } from './logic.model'
@@ -32,11 +31,13 @@ import {
   overTetronimoRow,
   setNextFall,
   viewBoard,
+  viewLastExecuted,
   viewSpeed,
   viewTetronimoColumn,
   viewTetronimoMatrix,
   viewTetronimoRow,
-  viewTetronimoType
+  viewTetronimoType,
+  viewTimestamp
 } from './logic.lens'
 import { asLongAs } from '../util/fp'
 import { mergeMatrices } from '../util/matrix'
@@ -104,7 +105,8 @@ export const instantDrop = R.pipe(
   }
 )
 
-export const decreaseMoveTimer: StateTransformation = (state) => {
+export const decreaseMoveTimer = (state: State): State => {
+  if (viewTimestamp(state) !== viewLastExecuted(state)) return state
   const speed = viewSpeed(state)
   return overNextFall(R.ifElse(R.gt(R.__, 0), R.dec, R.always(speed)), state)
 }
@@ -131,15 +133,17 @@ export const mergeTetronimoToBoard = (
 export const createInitialState = (): State => {
   const [tetronimo, ...tail] = createSequence()
 
-  return [
-    createEmptyBoard(),
-    [tetronimo, 4, 0, createRotation()],
-    DEFAULT_SPEED,
-    tail,
-    DEFAULT_SPEED,
-    DEFAULT_SCORE,
-    DEFAULT_CLEARED_LINES
-  ]
+  return {
+    board: createEmptyBoard(),
+    tetronimo: [tetronimo, 4, 0, createRotation()],
+    speed: DEFAULT_SPEED,
+    sequence: tail,
+    nextFall: DEFAULT_SPEED,
+    score: DEFAULT_SCORE,
+    linesCleared: DEFAULT_CLEARED_LINES,
+    lastExecuted: 0,
+    timestamp: 0
+  }
 }
 
 export const createEmptyRow = (): Cell[] => R.repeat(EMPTY_CELL, BOARD_WIDTH)

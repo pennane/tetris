@@ -38,16 +38,19 @@ export type Speed = number
 export type Score = number
 export type LinesCleared = number
 export type Level = number
+export type Timestamp = number
 
-export type State = [
-  Board,
-  Tetronimo,
-  NextFall,
-  Sequence,
-  Speed,
-  Score,
-  LinesCleared
-]
+export type State = {
+  board: Board
+  tetronimo: Tetronimo
+  nextFall: NextFall
+  sequence: Sequence
+  speed: Speed
+  score: Score
+  linesCleared: LinesCleared
+  timestamp: Timestamp
+  lastExecuted: Timestamp
+}
 
 export type StateTransformation = (state: State) => State
 export type StatePredicate = (state: State) => boolean

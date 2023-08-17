@@ -16,65 +16,75 @@ import {
 } from './logic.constants'
 import { Lens } from 'ramda'
 
-const tetronimoLens = R.lensIndex<State, 1>(1)
+const tetronimoLens = R.lensProp<State, 'tetronimo'>('tetronimo')
 export const viewTetronimo = R.view(tetronimoLens)
 export const overTetronimo = R.over(tetronimoLens)
 export const setTetronimo = R.set(tetronimoLens)
 
-const tetronimoTypeLens = R.lensPath<State, TetrominoCell>([1, 0])
+const tetronimoTypeLens = R.lensPath<State, TetrominoCell>(['tetronimo', 0])
 export const viewTetronimoType = R.view(tetronimoTypeLens)
 export const overTetronimoType = R.over(tetronimoTypeLens)
 export const setTetronimoType = R.set(tetronimoTypeLens)
 
-const tetronimoRowLens = R.lensPath<State, Row>([1, 2])
+const tetronimoRowLens = R.lensPath<State, Row>(['tetronimo', 2])
 export const viewTetronimoRow = R.view(tetronimoRowLens)
 export const overTetronimoRow = R.over(tetronimoRowLens)
 export const setTetronimoRow = R.set(tetronimoRowLens)
 
-const tetronimoColumnLens = R.lensPath<State, Column>([1, 1])
+const tetronimoColumnLens = R.lensPath<State, Column>(['tetronimo', 1])
 export const viewTetronimoColumn = R.view(tetronimoColumnLens)
 export const overTetronimoColumn = R.over(tetronimoColumnLens)
 export const setTetronimoColumn = R.set(tetronimoColumnLens)
+
+const rotationLens = R.lensPath<State, Rotation>(['tetronimo', 3])
+export const viewRotation = R.view(rotationLens)
+export const overRotation = R.over(rotationLens)
+export const setRotation = R.set(rotationLens)
 
 export const viewTetronimoMatrix = (state: State): Matrix => {
   const tetronimo = viewTetronimo(state)
   return TETRONIMO_MATRICES[tetronimo[3]][tetronimo[0]]
 }
 
-const nextFallLens = R.lensIndex<State, 2>(2)
+const nextFallLens = R.lensProp<State, 'nextFall'>('nextFall')
 export const viewNextFall = R.view(nextFallLens)
 export const overNextFall = R.over(nextFallLens)
 export const setNextFall = R.set(nextFallLens)
 
-const boardLens = R.lensIndex<State, 0>(0)
+const boardLens = R.lensProp<State, 'board'>('board')
 export const viewBoard = R.view(boardLens)
 export const overBoard = R.over(boardLens)
 export const setBoard = R.set(boardLens)
 
-const rotationLens = R.lensPath<State, Rotation>([1, 3])
-export const viewRotation = R.view(rotationLens)
-export const overRotation = R.over(rotationLens)
-export const setRotation = R.set(rotationLens)
-
-const sequenceLens = R.lensIndex<State, 3>(3)
+const sequenceLens = R.lensProp<State, 'sequence'>('sequence')
 export const viewSequence = R.view(sequenceLens)
 export const overSequence = R.over(sequenceLens)
 export const setSequence = R.set(sequenceLens)
 
-const speedLens = R.lensIndex<State, 4>(4)
+const speedLens = R.lensProp<State, 'speed'>('speed')
 export const viewSpeed = R.view(speedLens)
 export const overSpeed = R.over(speedLens)
 export const setSpeed = R.set(speedLens)
 
-const scoreLens = R.lensIndex<State, 5>(5)
+const scoreLens = R.lensProp<State, 'score'>('score')
 export const viewScore = R.view(scoreLens)
 export const overScore = R.over(scoreLens)
 export const setSScore = R.set(scoreLens)
 
-const linesClearedLens = R.lensIndex<State, 6>(6)
+const linesClearedLens = R.lensProp<State, 'linesCleared'>('linesCleared')
 export const viewLinesCleared = R.view(linesClearedLens)
 export const overLinesCleared = R.over(linesClearedLens)
 export const setLinesCleared = R.set(linesClearedLens)
+
+const timestampLens = R.lensProp<State, 'timestamp'>('timestamp')
+export const viewTimestamp = R.view(timestampLens)
+export const overTimestamp = R.over(timestampLens)
+export const setTimestamp = R.set(timestampLens)
+
+const lastExecutedLens = R.lensProp<State, 'lastExecuted'>('lastExecuted')
+export const viewLastExecuted = R.view(lastExecutedLens)
+export const overLastExecuted = R.over(lastExecutedLens)
+export const setLastExecuted = R.set(lastExecutedLens)
 
 export const linesClearedToLevel = (linesCleared: LinesCleared) =>
   Math.min(

@@ -1,5 +1,6 @@
 import {
   ACTION_TO_TRANSFORMATION,
+  EXECUTE_INTERVAL_MS,
   LINES_CLEARED_TO_SCORE
 } from './logic.constants'
 import {
@@ -13,7 +14,10 @@ import {
   overScoreAndBoardAndLinesCleared,
   setSpeed,
   viewLevel,
-  linesClearedToLevel
+  linesClearedToLevel,
+  setLastExecuted,
+  viewLastExecuted,
+  setTimestamp
 } from './logic.lens'
 import {
   createInitialState,
@@ -87,13 +91,37 @@ const handleFall = R.when(
   )
 )
 
-const handleInput = (state: State, action: Action | null): State => {
-  if (!action) return state
-  const actionFunction = ACTION_TO_TRANSFORMATION[action]
-  if (!actionFunction) return state
-  const modifiedState = actionFunction(state)
-  if (!isValidState(modifiedState)) return state
-  return modifiedState
-}
+const handleInput =
+  (action: Action | null) =>
+  (state: State): State => {
+    if (!action) return state
+    const actionFunction = ACTION_TO_TRANSFORMATION[action]
+    if (!actionFunction) return state
+    const modifiedState = actionFunction(state)
+    if (!isValidState(modifiedState)) return state
+    return modifiedState
+  }
 
-export const nextState = R.pipe(handleInput, decreaseMoveTimer, handleFall)
+const shouldExecute = (timestamp: number) =>
+  R.pipe(
+    viewLastExecuted,
+    (last: number) => timestamp - last > EXECUTE_INTERVAL_MS
+  )
+
+const updateTimetamps = (timestamp: number) =>
+  R.pipe(
+    setTimestamp(timestamp),
+    R.when(shouldExecute(timestamp), setLastExecuted(timestamp))
+  )
+
+export const nextState = (
+  state: State,
+  action: Action | null,
+  timestamp: number
+) =>
+  R.pipe(
+    handleInput(action),
+    updateTimetamps(timestamp),
+    decreaseMoveTimer,
+    handleFall
+  )(state)
