@@ -1,4 +1,7 @@
 import './style.css'
+
+import * as R from 'ramda'
+
 import {
   KEY_TO_ACTION,
   PERSISTED_STATE_STORAGE_KEY
@@ -43,10 +46,16 @@ const startGameLoop = (e: KeyboardEvent) => {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
   e.preventDefault()
 
-  const persistedState = load(PERSISTED_STATE_STORAGE_KEY, (v): State | null =>
-    typeof v === 'object' && !Array.isArray(v) && v !== null
-      ? (v as State)
-      : null
+  const persistedState = load(
+    PERSISTED_STATE_STORAGE_KEY,
+    (v): State | null => {
+      const state =
+        typeof v === 'object' && !Array.isArray(v) && v !== null
+          ? (v as State)
+          : null
+      if (!state) return null
+      return R.assoc('lastExecuted', 0, state)
+    }
   )
 
   gameLoop(persistedState || createInitialState())
