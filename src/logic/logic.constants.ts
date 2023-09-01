@@ -82,7 +82,8 @@ export const KEY_TO_ACTION: Record<string, Action> = {
   s: Action.DOWN,
   ArrowDown: Action.DOWN,
   ' ': Action.JUMP,
-  r: Action.ROTATE
+  r: Action.ROTATE,
+  ArrowUp: Action.ROTATE
 }
 
 export const ACTION_TO_TRANSFORMATION: Record<Action, StateTransformation> = {
