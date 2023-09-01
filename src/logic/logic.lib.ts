@@ -1,6 +1,7 @@
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
+  CELL_TO_GHOST_CELL_MAP,
   DEFAULT_CLEARED_LINES,
   DEFAULT_SCORE,
   DEFAULT_SPEED,
@@ -13,6 +14,8 @@ import {
   Board,
   Cell,
   EMPTY_CELL,
+  EmptyCell,
+  GhostCell,
   Level,
   Rotation,
   Sequence,
@@ -42,6 +45,11 @@ import {
 import { asLongAs } from '../util/fp'
 import { mergeMatrices } from '../util/matrix'
 import { shuffle, randomInt } from '../util/random'
+
+export const toGhostCell = (cell: Cell): GhostCell | EmptyCell => {
+  if (cell === EMPTY_CELL) return EMPTY_CELL
+  return CELL_TO_GHOST_CELL_MAP[cell] || EMPTY_CELL
+}
 
 export const isFailState = R.pipe(
   viewBoard,
@@ -127,6 +135,19 @@ export const mergeTetronimoToBoard = (
 
   return mergeMatrices(board, matrix, x, y, (boardItem, tetronimoItem) =>
     tetronimoItem ? tetronimo[0] : boardItem
+  )
+}
+
+export const mergeGhostTetronimoToBoard = (
+  board: Board,
+  tetronimo: Tetronimo
+) => {
+  const [x, y] = [tetronimo[1], tetronimo[2]]
+  const matrix = TETRONIMO_MATRICES[tetronimo[3]][tetronimo[0]]
+  const ghostCell = toGhostCell(tetronimo[0])
+
+  return mergeMatrices(board, matrix, x, y, (boardItem, tetronimoItem) =>
+    tetronimoItem ? (ghostCell as Cell) : boardItem
   )
 }
 

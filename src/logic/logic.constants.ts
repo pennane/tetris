@@ -112,3 +112,13 @@ export const TETRONIMO_TO_INSTANT_DROP_SCORE: Record<TetrominoCell, Score> = {
   [TetrominoCell.T]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.T]),
   [TetrominoCell.Z]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.Z])
 }
+
+export const CELL_TO_GHOST_CELL_MAP = {
+  [TetrominoCell.I]: 'I G',
+  [TetrominoCell.J]: 'J G',
+  [TetrominoCell.L]: 'L G',
+  [TetrominoCell.O]: 'O G',
+  [TetrominoCell.S]: 'S G',
+  [TetrominoCell.T]: 'T G',
+  [TetrominoCell.Z]: 'Z G'
+} as const satisfies Record<TetrominoCell, string>

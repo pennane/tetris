@@ -10,8 +10,14 @@ import {
   viewLevel,
   viewSequence
 } from './logic/logic.lens'
-import { mergeTetronimoToBoard } from './logic/logic.lib'
+import {
+  isValidState,
+  mergeGhostTetronimoToBoard,
+  mergeTetronimoToBoard,
+  moveDown
+} from './logic/logic.lib'
 import { Score, State, EMPTY_CELL } from './logic/logic.model'
+import { asLongAs } from './util/fp'
 import { load, store } from './util/storage'
 
 const SCORE_STORAGE_KEY = 'score'
@@ -38,7 +44,13 @@ const statsElement = document.getElementById('stats')!
 const drawBoardTo =
   (target: HTMLElement) =>
   (state: State): void => {
-    const board = mergeTetronimoToBoard(viewBoard(state), viewTetronimo(state))
+    const ghostTetronimo = viewTetronimo(
+      asLongAs(isValidState, moveDown)(state)
+    )
+    const board = mergeTetronimoToBoard(
+      mergeGhostTetronimoToBoard(viewBoard(state), ghostTetronimo),
+      viewTetronimo(state)
+    )
     let html = ''
     for (const row of board) {
       html += '<div class="row">'

@@ -1,3 +1,5 @@
+import { CELL_TO_GHOST_CELL_MAP } from './logic.constants'
+
 export type GenericMatrix<T> = T[][]
 export type Matrix = GenericMatrix<0 | 1>
 
@@ -19,6 +21,8 @@ export enum TetrominoCell {
   Z = 'Z'
 }
 
+export type GhostCell =
+  (typeof CELL_TO_GHOST_CELL_MAP)[keyof typeof CELL_TO_GHOST_CELL_MAP]
 export type EmptyCell = 'E'
 export const EMPTY_CELL = 'E'
 
