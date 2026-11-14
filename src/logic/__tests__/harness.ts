@@ -1,15 +1,15 @@
 import { BOARD_HEIGHT } from '../logic.constants'
 import { EMPTY_CELL, TetrominoCell } from '../logic.model'
 import type {
-  Action,
   Board,
+  Msg,
   Cell,
   Outcome,
   Rotation,
   Sequence,
   State
 } from '../logic.model'
-import { nextState } from '../logic'
+import { run } from '../logic'
 
 export type PieceSpec = {
   type: TetrominoCell
@@ -44,17 +44,12 @@ export const makeState = (o: {
   nextFall: o.nextFall ?? 30,
   score: o.score ?? 0,
   linesCleared: o.linesCleared ?? 0,
-  lastTick: 0
+  seed: 1
 })
 
-export const advance = (
-  s: State,
-  action: Action | null,
-  ts: number
-): Outcome => nextState(s, action, ts)
+export const send = (s: State, ...msgs: Msg[]): Outcome => run(s, msgs)
 
-export const step = (s: State, action: Action | null, ts: number): State =>
-  advance(s, action, ts).state
+export const step = (s: State, ...msgs: Msg[]): State => send(s, ...msgs).state
 
 export const pieceOf = (s: State): PieceSpec => ({ ...s.piece })
 

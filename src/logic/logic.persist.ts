@@ -13,7 +13,7 @@ import type {
 } from './logic.model'
 
 export const SAVE_STORAGE_KEY = 'persisted-game-state'
-const SAVE_VERSION = 2
+const SAVE_VERSION = 3
 
 export type Save = Readonly<{
   version: typeof SAVE_VERSION
@@ -23,6 +23,7 @@ export type Save = Readonly<{
   nextFall: number
   score: number
   linesCleared: number
+  seed: number
 }>
 
 export const toSave = (state: State): Save => ({
@@ -32,7 +33,8 @@ export const toSave = (state: State): Save => ({
   sequence: state.sequence,
   nextFall: state.nextFall,
   score: state.score,
-  linesCleared: state.linesCleared
+  linesCleared: state.linesCleared,
+  seed: state.seed
 })
 
 type Decoder<T> = (v: unknown) => T | null
@@ -45,6 +47,11 @@ const count: Decoder<number> = (v) =>
 
 const int: Decoder<number> = (v) =>
   typeof v === 'number' && Number.isInteger(v) ? v : null
+
+const uint32: Decoder<number> = (v) => {
+  const n = count(v)
+  return n !== null && n < 2 ** 32 ? n : null
+}
 
 const tetromino: Decoder<TetrominoCell> = (v) =>
   TETROMINOES.find((t) => t === v) ?? null
@@ -97,8 +104,10 @@ export const fromSave: Decoder<State> = (v) => {
   const nextFall = count(v['nextFall'])
   const score = count(v['score'])
   const linesCleared = count(v['linesCleared'])
+  const seed = uint32(v['seed'])
   if (b === null || p === null || s === null) return null
   if (nextFall === null || score === null || linesCleared === null) return null
+  if (seed === null) return null
   if (!fits(b, p)) return null
   return {
     board: b,
@@ -107,6 +116,6 @@ export const fromSave: Decoder<State> = (v) => {
     nextFall,
     score,
     linesCleared,
-    lastTick: 0
+    seed
   }
 }

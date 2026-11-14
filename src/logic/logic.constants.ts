@@ -3,7 +3,9 @@ import { rotate90, rotate180, rotate270 } from '../util/matrix'
 import { Action, TetrominoCell } from './logic.model'
 import type { Rotation, Score, Shape, Speed } from './logic.model'
 
-export const EXECUTE_INTERVAL_MS = 16
+export const TICKS_PER_SECOND = 60
+export const TICK_MS = 1000 / TICKS_PER_SECOND
+export const MAX_TICKS_PER_FRAME = 4
 
 export const BOARD_WIDTH = 10
 export const BOARD_HEIGHT = 20

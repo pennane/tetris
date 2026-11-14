@@ -11,7 +11,7 @@ export const at = {
   nextFall: state('nextFall'),
   score: state('score'),
   linesCleared: state('linesCleared'),
-  lastTick: state('lastTick'),
+  seed: state('seed'),
   pieceType: compose(state('piece'), piece('type')),
   pieceCol: compose(state('piece'), piece('col')),
   pieceRow: compose(state('piece'), piece('row')),

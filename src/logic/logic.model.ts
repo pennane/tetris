@@ -1,5 +1,7 @@
 import type { NonEmpty } from '../util/fp'
 import type { Matrix } from '../util/matrix'
+import type { Seed } from '../util/random'
+import type { Step, Writer } from '../util/writer'
 
 export enum Action {
   LEFT = 'LEFT',
@@ -58,7 +60,7 @@ export type State = Readonly<{
   nextFall: NextFall
   score: Score
   linesCleared: LinesCleared
-  lastTick: Timestamp
+  seed: Seed
 }>
 
 export type GameEvent =
@@ -67,7 +69,10 @@ export type GameEvent =
   | Readonly<{ type: 'levelUp'; level: Level }>
   | Readonly<{ type: 'gameOver'; finalScore: Score }>
 
-export type Outcome = Readonly<{ state: State; events: readonly GameEvent[] }>
+export type Msg = Readonly<{ type: 'input'; action: Action }> | Readonly<{ type: 'tick' }>
+
+export type Outcome = Writer<State, GameEvent>
+export type GameStep = Step<State, GameEvent>
 
 export type StateTransformation = (state: State) => State
 export type StatePredicate = (state: State) => boolean

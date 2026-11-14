@@ -1,14 +1,17 @@
 import './style.css'
 
-import { drawBoard, drawStats } from './dom'
-import { nextState } from './logic/logic'
+import * as R from 'ramda'
+import { createBoardView, drawStats } from './dom'
+import { TICK, input, run } from './logic/logic'
+import { ticksDue } from './logic/logic.clock'
 import { KEY_TO_ACTION } from './logic/logic.constants'
 import { createInitialState, levelOf } from './logic/logic.lib'
-import type { Action, GameEvent, State } from './logic/logic.model'
+import type { Action, GameEvent, Msg, State, Timestamp } from './logic/logic.model'
 import { SAVE_STORAGE_KEY, fromSave, toSave } from './logic/logic.persist'
 import { MUSIC_STATE_STORAGE_KEY } from './music/music.constants'
 import { setGlobalGain, startSoundtrack } from './music/music'
 import { HIGH_SCORES_STORAGE_KEY, decodeHighScores, recordScore } from './scores'
+import { freshSeed } from './util/random'
 import { load, store } from './util/storage'
 
 const element = (id: string) => {
@@ -16,7 +19,7 @@ const element = (id: string) => {
   if (!el) throw new Error(`Missing #${id}`)
   return el
 }
-const boardElement = element('board')
+const drawBoard = createBoardView(element('board'))
 const statsElement = element('stats')
 const musicCheckbox = element('music-checkbox') as HTMLInputElement
 
@@ -42,19 +45,29 @@ const handleEvent = (event: GameEvent) => {
   }
 }
 
-const frame = (state: State, events: readonly GameEvent[]) => {
+const takeMessages = (ticks: number): Msg[] => {
+  const action = queuedAction
+  queuedAction = null
+  return [...(action ? [input(action)] : []), ...R.repeat(TICK, ticks)]
+}
+
+const frame = (
+  state: State,
+  events: readonly GameEvent[],
+  lastTick: Timestamp
+) => {
   currentState = state
   events.forEach(handleEvent)
-  drawBoard(boardElement, state)
+  drawBoard(state)
   if (events.length > 0) {
     drawStats(statsElement, state, highScores)
     store(SAVE_STORAGE_KEY, toSave(state))
   }
-  requestAnimationFrame((timestamp) => {
-    const action = queuedAction
-    queuedAction = null
-    const outcome = nextState(state, action, timestamp)
-    frame(outcome.state, outcome.events)
+  requestAnimationFrame((now) => {
+    const clock = ticksDue(lastTick, now)
+    const msgs = takeMessages(clock.ticks)
+    const outcome = msgs.length > 0 ? run(state, msgs) : { state, events: [] }
+    frame(outcome.state, outcome.events, clock.last)
   })
 }
 
@@ -64,9 +77,10 @@ const startGame = (e: KeyboardEvent) => {
   window.removeEventListener('keydown', startGame)
   window.addEventListener('keydown', queueAction)
 
-  const initial = load(SAVE_STORAGE_KEY, fromSave) ?? createInitialState()
+  const initial =
+    load(SAVE_STORAGE_KEY, fromSave) ?? createInitialState(freshSeed())
   drawStats(statsElement, initial, highScores)
-  frame(initial, [])
+  frame(initial, [], performance.now())
   startSoundtrack(() => levelOf(currentState))
 }
 

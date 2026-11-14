@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { EXECUTE_INTERVAL_MS } from '../logic.constants'
+import * as R from 'ramda'
+import { TICK, input, run, update } from '../logic'
+import { createInitialState } from '../logic.lib'
 import { Action, TetrominoCell as T } from '../logic.model'
+import type { GameEvent, Msg, State } from '../logic.model'
 import {
-  advance,
+  send,
   boardRows,
   linesOf,
   makeState,
@@ -13,22 +16,19 @@ import {
   step
 } from './harness'
 
-const TICK = EXECUTE_INTERVAL_MS + 1
-const WITHIN_TICK = 1
-
 describe('input', () => {
   it('moves left, right and down', () => {
     const s = makeState({ piece: { type: T.T, col: 4, row: 5, rotation: 0 } })
-    expect(pieceOf(step(s, Action.LEFT, WITHIN_TICK)).col).toBe(3)
-    expect(pieceOf(step(s, Action.RIGHT, WITHIN_TICK)).col).toBe(5)
-    expect(pieceOf(step(s, Action.DOWN, WITHIN_TICK)).row).toBe(6)
+    expect(pieceOf(step(s, input(Action.LEFT))).col).toBe(3)
+    expect(pieceOf(step(s, input(Action.RIGHT))).col).toBe(5)
+    expect(pieceOf(step(s, input(Action.DOWN))).row).toBe(6)
   })
 
   it('rotates through all four rotations', () => {
     let s = makeState({ piece: { type: T.T, col: 4, row: 5, rotation: 0 } })
     const seen: number[] = []
     for (let i = 0; i < 4; i++) {
-      s = step(s, Action.ROTATE, WITHIN_TICK)
+      s = step(s, input(Action.ROTATE))
       seen.push(pieceOf(s).rotation)
     }
     expect(seen).toEqual([1, 2, 3, 0])
@@ -36,9 +36,9 @@ describe('input', () => {
 
   it('rejects moves into walls', () => {
     const s = makeState({ piece: { type: T.O, col: 0, row: 5, rotation: 0 } })
-    expect(pieceOf(step(s, Action.LEFT, WITHIN_TICK)).col).toBe(0)
+    expect(pieceOf(step(s, input(Action.LEFT))).col).toBe(0)
     const r = makeState({ piece: { type: T.O, col: 8, row: 5, rotation: 0 } })
-    expect(pieceOf(step(r, Action.RIGHT, WITHIN_TICK)).col).toBe(8)
+    expect(pieceOf(step(r, input(Action.RIGHT))).col).toBe(8)
   })
 
   it('rejects moves into locked cells', () => {
@@ -46,23 +46,23 @@ describe('input', () => {
       piece: { type: T.O, col: 4, row: 17, rotation: 0 },
       board: ['...Z......', '..........']
     })
-    expect(pieceOf(step(s, Action.LEFT, WITHIN_TICK)).col).toBe(4)
+    expect(pieceOf(step(s, input(Action.LEFT))).col).toBe(4)
   })
 
   it('rejects a rotation that would collide', () => {
     const s = makeState({ piece: { type: T.I, col: 3, row: 18, rotation: 0 } })
-    expect(pieceOf(step(s, Action.ROTATE, WITHIN_TICK)).rotation).toBe(0)
+    expect(pieceOf(step(s, input(Action.ROTATE))).rotation).toBe(0)
   })
 })
 
 describe('gravity', () => {
-  it('does not advance the fall timer on non-tick frames', () => {
+  it('advances the fall timer on ticks only', () => {
     const s = makeState({
       piece: { type: T.T, col: 4, row: 5, rotation: 0 },
       nextFall: 5
     })
-    expect(nextFallOf(step(s, null, WITHIN_TICK))).toBe(5)
-    expect(nextFallOf(step(s, null, TICK))).toBe(4)
+    expect(nextFallOf(step(s, input(Action.LEFT)))).toBe(5)
+    expect(nextFallOf(step(s, TICK))).toBe(4)
   })
 
   it('moves the piece down when the timer reaches zero, then resets it', () => {
@@ -70,20 +70,11 @@ describe('gravity', () => {
       piece: { type: T.T, col: 4, row: 5, rotation: 0 },
       nextFall: 1
     })
-    const fell = step(s, null, TICK)
+    const fell = step(s, TICK)
     expect(pieceOf(fell).row).toBe(6)
-    const reset = step(fell, null, 2 * TICK)
+    const reset = step(fell, TICK)
     expect(pieceOf(reset).row).toBe(6)
     expect(nextFallOf(reset)).toBe(61)
-  })
-
-  it('falls once per tick, not once per frame', () => {
-    const s = makeState({
-      piece: { type: T.T, col: 4, row: 5, rotation: 0 },
-      nextFall: 1
-    })
-    const fell = step(s, null, TICK)
-    expect(pieceOf(step(fell, null, TICK + WITHIN_TICK)).row).toBe(6)
   })
 })
 
@@ -96,21 +87,20 @@ describe('events', () => {
     })
 
   it('emits nothing on ordinary frames', () => {
-    expect(advance(lockable({ nextFall: 5 }), Action.LEFT, TICK).events).toEqual(
+    expect(send(lockable({ nextFall: 5 }), input(Action.LEFT), TICK).events).toEqual(
       []
     )
   })
 
   it('emits pieceLocked on lock', () => {
-    expect(advance(lockable(), null, TICK).events).toEqual([
+    expect(send(lockable(), TICK).events).toEqual([
       { type: 'pieceLocked' }
     ])
   })
 
   it('emits linesCleared and levelUp', () => {
-    const { events } = advance(
+    const { events } = send(
       lockable({ board: ['ZZZZZZ....'], linesCleared: 9 }),
-      null,
       TICK
     )
     expect(events).toEqual([
@@ -121,13 +111,12 @@ describe('events', () => {
   })
 
   it('emits gameOver with the score including the final lock', () => {
-    const { events } = advance(
+    const { events } = send(
       lockable({
         piece: { type: T.O, col: 0, row: 0, rotation: 0 },
         board: Array<string>(18).fill('ZZZZZZZZZ.'),
         score: 500
       }),
-      null,
       TICK
     )
     expect(events[events.length - 1]).toEqual({ type: 'gameOver', finalScore: 500 })
@@ -140,12 +129,12 @@ describe('locking', () => {
       piece: { type: T.O, col: 0, row: 0, rotation: 0 },
       sequence: [T.L, T.J]
     })
-    const dropped = step(s, Action.JUMP, WITHIN_TICK)
+    const dropped = step(s, input(Action.JUMP))
     expect(pieceOf(dropped).row).toBe(18)
     expect(scoreOf(dropped)).toBe(4)
     expect(nextFallOf(dropped)).toBe(1)
 
-    const locked = step(dropped, null, TICK)
+    const locked = step(dropped, TICK)
     expect(boardRows(locked).slice(-2)).toEqual(['OO........', 'OO........'])
     expect(pieceOf(locked)).toEqual({ type: T.L, col: 4, row: 0, rotation: 0 })
     expect(sequenceOf(locked)).toEqual([T.J])
@@ -157,7 +146,7 @@ describe('locking', () => {
       sequence: [T.L],
       nextFall: 1
     })
-    const locked = step(s, null, TICK)
+    const locked = step(s, TICK)
     expect(pieceOf(locked).type).toBe(T.L)
     expect([...sequenceOf(locked)].sort()).toEqual(
       [T.I, T.J, T.L, T.O, T.S, T.T, T.Z].sort()
@@ -170,7 +159,7 @@ describe('locking', () => {
       board: ['ZZZZZZ....'],
       nextFall: 1
     })
-    const locked = step(s, null, TICK)
+    const locked = step(s, TICK)
     expect(boardRows(locked).every((r) => r === '..........')).toBe(true)
     expect(scoreOf(locked)).toBe(40)
     expect(linesOf(locked)).toBe(1)
@@ -183,7 +172,7 @@ describe('locking', () => {
       linesCleared: 10,
       nextFall: 1
     })
-    const locked = step(s, null, TICK)
+    const locked = step(s, TICK)
     expect(scoreOf(locked)).toBe(100 * 2)
     expect(linesOf(locked)).toBe(12)
   })
@@ -194,7 +183,7 @@ describe('locking', () => {
       board: ['S.........', 'ZZZZZZ....'],
       nextFall: 1
     })
-    const locked = step(s, null, TICK)
+    const locked = step(s, TICK)
     expect(boardRows(locked).slice(-1)).toEqual(['S.........'])
   })
 
@@ -205,7 +194,7 @@ describe('locking', () => {
         linesCleared,
         nextFall: 1
       })
-      return nextFallOf(step(step(s, null, TICK), null, 2 * TICK))
+      return nextFallOf(step(s, TICK, TICK))
     }
     expect(at(0)).toBe(61)
     expect(at(10)).toBe(56)
@@ -221,9 +210,43 @@ describe('locking', () => {
       linesCleared: 3,
       nextFall: 1
     })
-    const over = step(s, null, TICK)
+    const over = step(s, TICK)
     expect(scoreOf(over)).toBe(0)
     expect(linesOf(over)).toBe(0)
     expect(boardRows(over).every((r) => r === '..........')).toBe(true)
+  })
+})
+
+describe('replay', () => {
+  const ACTIONS = Object.values(Action)
+  const session = (length: number): Msg[] =>
+    R.times(
+      (i) => (i % 7 === 0 ? input(ACTIONS[i % ACTIONS.length] ?? Action.DOWN) : TICK),
+      length
+    )
+
+  it('reproduces the same game from the same seed and messages', () => {
+    const msgs = session(20_000)
+    const a = run(createInitialState(42), msgs)
+    const b = run(createInitialState(42), msgs)
+    expect(a).toEqual(b)
+    expect(a.events.some((e) => e.type === 'gameOver')).toBe(true)
+  })
+
+  it('folding the log equals stepping one message at a time', () => {
+    const msgs = session(3_000)
+    const stepped = msgs.reduce<{ state: State; events: GameEvent[] }>(
+      (acc, msg) => {
+        const o = update(acc.state, msg)
+        return { state: o.state, events: [...acc.events, ...o.events] }
+      },
+      { state: createInitialState(7), events: [] }
+    )
+    expect(run(createInitialState(7), msgs)).toEqual(stepped)
+  })
+
+  it('leaves state referentially unchanged on a rejected move', () => {
+    const s = makeState({ piece: { type: T.O, col: 0, row: 5, rotation: 0 } })
+    expect(step(s, input(Action.LEFT))).toBe(s)
   })
 })

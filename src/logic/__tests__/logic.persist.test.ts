@@ -7,14 +7,14 @@ import { makeState } from './harness'
 const roundTrip = (v: unknown) => fromSave(JSON.parse(JSON.stringify(v)))
 
 describe('save format', () => {
-  it('round-trips through JSON with lastTick reset', () => {
-    const state = { ...createInitialState(), score: 120, lastTick: 999 }
-    expect(roundTrip(toSave(state))).toEqual({ ...state, lastTick: 0 })
+  it('round-trips through JSON', () => {
+    const state = { ...createInitialState(3), score: 120 }
+    expect(roundTrip(toSave(state))).toEqual(state)
   })
 
   it('rejects the legacy unversioned tuple format', () => {
     const legacy = {
-      board: createInitialState().board,
+      board: createInitialState(0).board,
       tetronimo: ['T', 4, 0, 0],
       speed: 65,
       sequence: ['I'],
@@ -28,15 +28,17 @@ describe('save format', () => {
   })
 
   it.each([
-    ['wrong version', { version: 1 }],
+    ['wrong version', { version: 2 }],
+    ['missing seed', { seed: undefined }],
+    ['seed out of range', { seed: 2 ** 32 }],
     ['short board', { board: [] }],
-    ['unknown cell', { board: createInitialState().board.map((r) => r.map(() => 'X')) }],
+    ['unknown cell', { board: createInitialState(0).board.map((r) => r.map(() => 'X')) }],
     ['bad rotation', { piece: { type: 'T', col: 4, row: 0, rotation: 4 } }],
     ['empty sequence', { sequence: [] }],
     ['negative score', { score: -1 }],
     ['fractional lines', { linesCleared: 1.5 }]
   ])('rejects %s', (_, patch) => {
-    expect(roundTrip({ ...toSave(createInitialState()), ...patch })).toBeNull()
+    expect(roundTrip({ ...toSave(createInitialState(0)), ...patch })).toBeNull()
   })
 
   it('rejects a piece overlapping locked cells', () => {

@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import { asLongAs, isNonEmpty } from '../util/fp'
 import { cellAt, overlay } from '../util/matrix'
-import { shuffle, type Random } from '../util/random'
+import { shuffle, type Seed, type Seeded } from '../util/random'
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
@@ -142,30 +142,31 @@ export const spawn = (type: TetrominoCell): Piece => ({
   rotation: 0
 })
 
-export const createSequence = (random: Random = Math.random): Sequence => {
-  const bag = shuffle(TETROMINOES, random)
-  return isNonEmpty(bag) ? bag : TETROMINOES
+export const createSequence = (seed: Seed): Seeded<Sequence> => {
+  const { value: bag, seed: next } = shuffle(TETROMINOES, seed)
+  return { value: isNonEmpty(bag) ? bag : TETROMINOES, seed: next }
 }
 
-export const spawnNext =
-  (random: Random = Math.random): StateTransformation =>
-  (state) => {
-    const [head, ...tail] = at.sequence.view(state)
-    return R.pipe(
-      at.piece.set(spawn(head)),
-      at.sequence.set(isNonEmpty(tail) ? tail : createSequence(random))
-    )(state)
-  }
+const refill = (state: State): State => {
+  const { value, seed } = createSequence(at.seed.view(state))
+  return R.pipe(at.sequence.set(value), at.seed.set(seed))(state)
+}
 
-export const createInitialState = (random: Random = Math.random): State => {
-  const [first, ...rest] = createSequence(random)
-  return {
+export const spawnNext: StateTransformation = (state) => {
+  const [head, ...tail] = at.sequence.view(state)
+  const spawned = at.piece.set(spawn(head))(state)
+  return isNonEmpty(tail) ? at.sequence.set(tail)(spawned) : refill(spawned)
+}
+
+export const createInitialState = (seed: Seed): State => {
+  const { value: sequence, seed: next } = createSequence(seed)
+  return spawnNext({
     board: createEmptyBoard(),
-    piece: spawn(first),
-    sequence: isNonEmpty(rest) ? rest : createSequence(random),
+    piece: spawn(sequence[0]),
+    sequence,
     nextFall: levelToSpeed(MIN_LEVEL),
     score: 0,
     linesCleared: 0,
-    lastTick: 0
-  }
+    seed: next
+  })
 }

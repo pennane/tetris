@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { EXECUTE_INTERVAL_MS } from './logic.constants'
+import { foldK, lift, pipeK, pure, tell } from '../util/writer'
 import { at } from './logic.lens'
 import {
   clearFullRows,
@@ -21,11 +21,15 @@ import {
 import { Action } from './logic.model'
 import type {
   GameEvent,
+  GameStep,
+  Msg,
   Outcome,
   State,
-  StateTransformation,
-  Timestamp
+  StateTransformation
 } from './logic.model'
+
+export const TICK: Msg = Object.freeze({ type: 'tick' })
+export const input = (action: Action): Msg => ({ type: 'input', action })
 
 const ACTION_TO_TRANSFORMATION: Readonly<Record<Action, StateTransformation>> =
   {
@@ -36,63 +40,56 @@ const ACTION_TO_TRANSFORMATION: Readonly<Record<Action, StateTransformation>> =
     [Action.JUMP]: instantDrop
   }
 
-const quiet = (state: State): Outcome => ({ state, events: [] })
-
 const handleInput =
-  (action: Action | null): StateTransformation =>
-  (state) =>
-    action === null
-      ? state
-      : R.pipe(
-          ACTION_TO_TRANSFORMATION[action],
-          R.ifElse(isValidState, R.identity, R.always(state))
-        )(state)
+  (action: Action): StateTransformation =>
+  (state) => {
+    const moved = ACTION_TO_TRANSFORMATION[action](state)
+    return isValidState(moved) ? moved : state
+  }
 
-const lockPiece = (state: State): Outcome => {
+const clearLines: GameStep = (state) => {
   const levelBefore = levelOf(state)
   const { board, cleared } = clearFullRows(
     mergePiece(at.board.view(state), at.piece.view(state))
   )
-  const locked = R.pipe(
+  const next = R.pipe(
     at.board.set(board),
     at.score.over(R.add(lineClearScore(cleared, levelBefore))),
-    at.linesCleared.over(R.add(cleared)),
-    spawnNext()
+    at.linesCleared.over(R.add(cleared))
   )(state)
-  const levelAfter = levelOf(locked)
-
-  const events: GameEvent[] = [{ type: 'pieceLocked' }]
+  const levelAfter = levelOf(next)
+  const events: GameEvent[] = []
   if (cleared > 0) events.push({ type: 'linesCleared', count: cleared })
-  if (levelAfter > levelBefore)
-    events.push({ type: 'levelUp', level: levelAfter })
-
-  if (!isFailState(locked)) return { state: locked, events }
-
-  events.push({ type: 'gameOver', finalScore: at.score.view(locked) })
-  return {
-    state: at.lastTick.set(at.lastTick.view(locked))(createInitialState()),
-    events
-  }
+  if (levelAfter > levelBefore) events.push({ type: 'levelUp', level: levelAfter })
+  return { state: next, events }
 }
 
-const gravity = (state: State): Outcome => {
-  const ticked = at.nextFall.over((n) => (n > 0 ? n - 1 : speedOf(state)))(
-    state
-  )
-  if (at.nextFall.view(ticked) !== 0) return quiet(ticked)
-  return shouldPlaceDown(ticked) ? lockPiece(ticked) : quiet(moveDown(ticked))
+const restartIfToppedOut: GameStep = (state) =>
+  isFailState(state)
+    ? {
+        state: createInitialState(at.seed.view(state)),
+        events: [{ type: 'gameOver', finalScore: at.score.view(state) }]
+      }
+    : pure(state)
+
+const lockPiece: GameStep = pipeK<State, GameEvent>(
+  tell({ type: 'pieceLocked' }),
+  clearLines,
+  lift(spawnNext),
+  restartIfToppedOut
+)
+
+const countDown: StateTransformation = (state) =>
+  at.nextFall.over((n) => (n > 0 ? n - 1 : speedOf(state)))(state)
+
+const fall: GameStep = (state) => {
+  if (at.nextFall.view(state) !== 0) return pure(state)
+  return shouldPlaceDown(state) ? lockPiece(state) : pure(moveDown(state))
 }
 
-const isTick = (timestamp: Timestamp, state: State) =>
-  timestamp - at.lastTick.view(state) > EXECUTE_INTERVAL_MS
+const gravity: GameStep = pipeK<State, GameEvent>(lift(countDown), fall)
 
-export const nextState = (
-  state: State,
-  action: Action | null,
-  timestamp: Timestamp
-): Outcome => {
-  const afterInput = handleInput(action)(state)
-  return isTick(timestamp, afterInput)
-    ? gravity(at.lastTick.set(timestamp)(afterInput))
-    : quiet(afterInput)
-}
+export const update = (state: State, msg: Msg): Outcome =>
+  msg.type === 'tick' ? gravity(state) : pure(handleInput(msg.action)(state))
+
+export const run = foldK(update)

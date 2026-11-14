@@ -15,9 +15,17 @@ describe('renderBoard', () => {
 })
 
 describe('createInitialState', () => {
-  it('is deterministic for a given random source and never has an empty preview', () => {
-    const rng = () => 0.5
-    expect(createInitialState(rng)).toEqual(createInitialState(rng))
-    expect(createInitialState(rng).sequence.length).toBeGreaterThan(0)
+  it('is deterministic for a seed and never has an empty preview', () => {
+    expect(createInitialState(5)).toEqual(createInitialState(5))
+    expect(createInitialState(5).sequence.length).toBeGreaterThan(0)
+  })
+
+  it('deals different bags for different seeds', () => {
+    const first = (seed: number) => [
+      createInitialState(seed).piece.type,
+      ...createInitialState(seed).sequence
+    ]
+    expect(first(1)).not.toEqual(first(2))
+    expect([...first(1)].sort()).toEqual([...first(2)].sort())
   })
 })
