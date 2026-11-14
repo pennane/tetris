@@ -1,3 +1,6 @@
+import type { Level } from '../logic/logic.model'
+import type { NonEmpty } from '../util/fp'
+
 export const NOTE_NAMES = [
   'C',
   'C#',
@@ -19,14 +22,29 @@ export type Octave = (typeof OCTAVES)[number]
 export type Pitch = `${NoteName}${Octave}`
 
 export type PlayMode = 'normal' | 'decay' | 'attack' | 'both'
+export type Instrument = 'pulse' | 'triangle' | 'noise' | 'sine' | 'square' | 'sawtooth'
 export type Seconds = number
-export type Duration = Seconds
+export type Steps = number
 export type Volume = number
 
 export type Note = Readonly<{
   pitch: Pitch
-  duration: Duration
+  length: Steps
   volume: Volume
   mode: PlayMode
-  waveform: OscillatorType
+  instrument: Instrument
 }>
+
+export type Rest = null
+export type NoteOrRest = Note | Rest
+export type NoteTransformer = (note: Note) => Note
+
+export type Track = Readonly<{
+  joinsAt: Level
+  notes: readonly NoteOrRest[]
+  arrangeFor: (level: Level) => NoteTransformer
+}>
+
+export type Song = readonly Track[]
+
+export type LevelCurve = NonEmpty<readonly [Level, number]>

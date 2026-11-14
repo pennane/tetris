@@ -5,8 +5,8 @@ const note = prop<Note>()
 
 export const noteAt = {
   pitch: note('pitch'),
-  duration: note('duration'),
+  length: note('length'),
   volume: note('volume'),
   mode: note('mode'),
-  waveform: note('waveform')
+  instrument: note('instrument')
 } as const

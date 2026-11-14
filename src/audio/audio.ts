@@ -1,18 +1,16 @@
-import * as R from 'ramda'
 import type { Level } from '../logic/logic.model'
 import {
   ATTACK_SECONDS,
   PEAK_GAIN,
   SILENT_GAIN
 } from './audio.constants'
-import { noteAt } from './audio.lens'
 import {
   createDistortionCurve,
   hz,
-  levelToDurationMultiplier
+  stepSecondsFor
 } from './audio.lib'
 import type { Note } from './audio.model'
-import { SOUNDTRACK, noteTransformerFor } from './audio.song'
+import { LEAD } from './audio.song'
 
 const audioContext = new AudioContext()
 const globalGain = audioContext.createGain()
@@ -33,9 +31,14 @@ fetch('../impulse-response.wav')
   })
   .catch((err) => console.error(err))
 
-const scheduleEnvelope = (gain: AudioParam, note: Note, start: number) => {
-  const end = start + note.duration
-  const attackEnd = start + Math.min(ATTACK_SECONDS, note.duration / 2)
+const scheduleEnvelope = (
+  gain: AudioParam,
+  note: Note,
+  start: number,
+  duration: number
+) => {
+  const end = start + duration
+  const attackEnd = start + Math.min(ATTACK_SECONDS, duration / 2)
   switch (note.mode) {
     case 'normal':
       gain.value = note.volume
@@ -56,37 +59,34 @@ const scheduleEnvelope = (gain: AudioParam, note: Note, start: number) => {
   }
 }
 
-const playNote = (note: Note, start: number): OscillatorNode => {
+const oscillatorTypeOf = (note: Note): OscillatorType =>
+  note.instrument === 'pulse' || note.instrument === 'noise' ? 'square' : note.instrument
+
+const playNote = (note: Note, start: number, duration: number) => {
   const oscillator = audioContext.createOscillator()
   const volume = audioContext.createGain()
-  oscillator.type = note.waveform
+  oscillator.type = oscillatorTypeOf(note)
   oscillator.frequency.value = hz(note.pitch)
-  scheduleEnvelope(volume.gain, note, start)
+  scheduleEnvelope(volume.gain, note, start, duration)
   oscillator.connect(volume)
   volume.connect(distortion)
   oscillator.start(start)
-  oscillator.stop(start + note.duration)
-  return oscillator
+  oscillator.stop(start + duration)
 }
 
-const playLoop = (notes: readonly Note[], getLevel: () => Level) => {
+const playLoop = (getLevel: () => Level) => {
   const level = getLevel()
-  const durationMultiplier = levelToDurationMultiplier(level)
-  const arranged = notes
-    .map(noteTransformerFor(level))
-    .map(noteAt.duration.over(R.multiply(durationMultiplier)))
-
+  const stepSeconds = stepSecondsFor(level)
   let time = audioContext.currentTime
-  let last: OscillatorNode | null = null
-  for (const note of arranged) {
-    last = playNote(note, time)
-    time += note.duration
+  for (const note of LEAD.notes) {
+    const duration = (note?.length ?? 1) * stepSeconds
+    if (note) playNote(LEAD.arrangeFor(level)(note), time, duration)
+    time += duration
   }
-  if (last) last.onended = () => playLoop(notes, getLevel)
+  setTimeout(() => playLoop(getLevel), (time - audioContext.currentTime) * 1000)
 }
 
-export const startSoundtrack = (getLevel: () => Level) =>
-  playLoop(SOUNDTRACK, getLevel)
+export const startSoundtrack = (getLevel: () => Level) => playLoop(getLevel)
 
 export const setGlobalGain = (gain: number) => {
   globalGain.gain.value = gain
