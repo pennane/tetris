@@ -1,6 +1,5 @@
 import {
   ATTACK_SECONDS,
-  DRIVE_INPUT_GAIN,
   EFFECTS_BUS_GAIN,
   MUSIC_BUS_GAIN,
   NOISE_SECONDS,
@@ -23,13 +22,11 @@ const gainNode = (gain: number) => {
 const master = gainNode(0)
 export const musicBus = gainNode(MUSIC_BUS_GAIN)
 export const effectsBus = gainNode(EFFECTS_BUS_GAIN)
-const driveInput = gainNode(DRIVE_INPUT_GAIN)
 const distortion = audioContext.createWaveShaper()
 distortion.oversample = 'none'
 const reverb = audioContext.createConvolver()
 
-musicBus.connect(driveInput)
-driveInput.connect(distortion)
+musicBus.connect(distortion)
 distortion.connect(reverb)
 reverb.connect(master)
 effectsBus.connect(master)

@@ -6,14 +6,18 @@ import {
   fullCharacterFrom,
   hz,
   notesAt,
-  peakInputAt,
+  semitoneOf,
   songLength,
   stepSecondsFor,
   transposePitch,
-  valueAt
+  valueAt,
+  voicePeakAt
 } from '../audio.lib'
-import { DRIVE_BY_LEVEL, LEAD, SONG, driveFor } from '../audio.song'
-import type { Instrument, LevelCurve, Note, PlayMode, Pitch } from '../audio.model'
+import { BASS_VOLUME } from '../audio.constants'
+import { BASS, DRIVE_BY_LEVEL, GAPS, LEAD, SONG, driveFor } from '../audio.song'
+import type { Instrument, LevelCurve, Note, PlayMode, Pitch, Track } from '../audio.model'
+
+const [[cleanLevelsEnd]] = DRIVE_BY_LEVEL
 
 describe('pitch', () => {
   it('tunes A4 to 440 and octaves by doubling', () => {
@@ -95,16 +99,61 @@ describe('drive', () => {
     expect(driveFor(MAX_LEVEL)).toBe(20)
   })
 
-  const isCleanLevel = R.pipe(driveFor, R.equals(1))
+  const isCleanLevel = R.gte(cleanLevelsEnd)
 
-  it('has clean levels', () => {
-    expect(isCleanLevel(MIN_LEVEL)).toBe(true)
+  it('sums the opening voices at full volume', () => {
+    expect(voicePeakAt(SONG, MIN_LEVEL)).toBeCloseTo(1 + BASS_VOLUME)
   })
 
   it('never clips the shaper input while drive is clean', () => {
     R.range(MIN_LEVEL, MAX_LEVEL + 1)
       .filter(isCleanLevel)
-      .forEach((level) => expect(peakInputAt(SONG, level)).toBeLessThanOrEqual(1))
+      .forEach((level) =>
+        expect(voicePeakAt(SONG, level) * driveFor(level)).toBeLessThanOrEqual(1)
+      )
+  })
+})
+
+describe('harmony', () => {
+  const probe: Note = { pitch: 'A2', length: 1, volume: 1, mode: 'decay', instrument: 'pulse' }
+  const offsetOf = (track: Track, level: number) =>
+    semitoneOf(track.arrangeFor(level)(probe).pitch) - semitoneOf(probe.pitch)
+
+  it.each(R.range(MIN_LEVEL, MAX_LEVEL + 1))(
+    'keeps the bass in the lead key at level %i',
+    (level) => {
+      expect(R.mathMod(offsetOf(LEAD, level) - offsetOf(BASS, level), 12)).toBe(0)
+    }
+  )
+})
+
+describe('melody gaps', () => {
+  const startsIn = (track: Track, level: number, step: number) =>
+    notesAt([track], level, step).length > 0
+  const restCount = LEAD.notes.filter(R.isNil).length
+
+  it('sounds a gap note in every melody rest and nowhere else', () => {
+    const steps = R.range(0, songLength(SONG))
+    const gapSteps = steps.filter((step) => startsIn(GAPS, MAX_LEVEL, step))
+    expect(gapSteps).toHaveLength(restCount)
+    gapSteps.forEach((step) => expect(startsIn(LEAD, MAX_LEVEL, step)).toBe(false))
+  })
+
+  it('stays out of the clean levels', () => {
+    expect(GAPS.joinsAt).toBeGreaterThan(cleanLevelsEnd)
+  })
+
+  it.each([
+    [6, 'A2', 0.1, 'decay', 'sawtooth'],
+    [11, 'C#3', 0.2, 'both', 'sawtooth'],
+    [13, 'C#2', 0.2, 'both', 'square']
+  ] as const)('matches the legacy rest tone at level %i', (level, pitch, volume, mode, instrument) => {
+    const [gap] = GAPS.notes.filter(R.isNotNil)
+    const n = gap && GAPS.arrangeFor(level)(gap)
+    expect(n?.pitch).toBe(pitch)
+    expect(n?.volume).toBeCloseTo(volume)
+    expect(n?.mode).toBe(mode)
+    expect(n?.instrument).toBe(instrument)
   })
 })
 

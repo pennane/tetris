@@ -5,7 +5,6 @@ import * as R from 'ramda'
 import {
   A4_HZ,
   BASE_STEP_SECONDS,
-  DRIVE_INPUT_GAIN,
   DURATION_MULTIPLIER_AT_MAX_LEVEL,
   DURATION_MULTIPLIER_AT_MIN_LEVEL
 } from './audio.constants'
@@ -116,10 +115,10 @@ const peakVolumeOf = (level: Level) => (track: Track) =>
     .map(R.pipe(track.arrangeFor(level), noteAt.volume.view))
     .reduce(R.max<number>, 0)
 
-export const peakInputAt = (song: Song, level: Level) =>
-  R.sum(activeTracks(song, level).map(peakVolumeOf(level))) * DRIVE_INPUT_GAIN
+export const voicePeakAt = (song: Song, level: Level) =>
+  R.sum(activeTracks(song, level).map(peakVolumeOf(level)))
 
-export const createDistortionCurve = (amount = 50) => {
+export const createDistortionCurve = (amount: number) => {
   const samples = 44100
   const curve = new Float32Array(samples)
   for (let i = 0; i < samples; ++i) {

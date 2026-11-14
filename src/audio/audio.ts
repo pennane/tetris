@@ -65,6 +65,9 @@ const playCue = (cue: Cue) => {
   }
 }
 
+const stopAt = (time: Seconds) => (source: AudioScheduledSourceNode) =>
+  source.stop(time)
+
 const restartMusicAfter = (pause: Seconds) => {
   const now = audioContext.currentTime
   const fadeEnd = now + MUSIC_FADE_SECONDS
@@ -73,7 +76,7 @@ const restartMusicAfter = (pause: Seconds) => {
   musicBus.gain.setValueAtTime(musicBus.gain.value, now)
   musicBus.gain.linearRampToValueAtTime(0, fadeEnd)
   musicBus.gain.setValueAtTime(MUSIC_BUS_GAIN, restartAt)
-  sounding.forEach((source) => source.stop(fadeEnd))
+  sounding.forEach(stopAt(fadeEnd))
   sounding.clear()
   step = 0
   nextStepTime = restartAt

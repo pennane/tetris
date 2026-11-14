@@ -10,7 +10,6 @@ export const PEAK_GAIN = 0.5
 export const SILENT_GAIN = 0.01
 
 export const BASE_STEP_SECONDS = 0.25
-export const DRIVE_INPUT_GAIN = 0.5
 export const PULSE_DUTY = 0.25
 export const BASS_VOLUME = 0.5
 export const CUE_STEP_SECONDS = 0.03

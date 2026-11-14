@@ -51,15 +51,20 @@ const bassBar = (root: Pitch) =>
 
 const BASS_ROOTS: readonly Pitch[] = ['E1', 'A1', 'E1', 'A1', 'D1', 'C1', 'E1', 'A1']
 
-const MELODY_FROM_LEVEL: ReadonlyArray<readonly [Level, NoteTransformer]> = [
+type LevelChanges = ReadonlyArray<readonly [Level, NoteTransformer]>
+
+const KEY_FROM_LEVEL: LevelChanges = [
+  [7, transpose(2)],
+  [10, transpose(2)]
+]
+
+const MELODY_FROM_LEVEL: LevelChanges = [
   [2, noteAt.volume.over(R.multiply(1.1))],
   [3, noteAt.volume.over(R.multiply(1.2))],
   [5, noteAt.volume.over(R.add(0.1))],
   [6, noteAt.instrument.set('sawtooth')],
-  [7, transpose(2)],
   [8, noteAt.mode.set('decay')],
   [9, noteAt.volume.over(R.add(0.1))],
-  [10, transpose(2)],
   [11, noteAt.mode.set('both')],
   [12, transpose(-12)],
   [13, noteAt.instrument.set('square')]
@@ -67,10 +72,16 @@ const MELODY_FROM_LEVEL: ReadonlyArray<readonly [Level, NoteTransformer]> = [
 
 const andThen = (f: NoteTransformer, g: NoteTransformer) => R.pipe(f, g)
 
-const melodyArrangementFor = (level: Level) =>
-  MELODY_FROM_LEVEL.filter(([from]) => level >= from)
+const changesUpTo = (changes: LevelChanges) => (level: Level) =>
+  changes
+    .filter(([from]) => level >= from)
     .map(([, transform]) => transform)
     .reduce(andThen, R.identity)
+
+const keyFor = changesUpTo(KEY_FROM_LEVEL)
+
+const melodyArrangementFor = (level: Level) =>
+  R.pipe(keyFor(level), changesUpTo(MELODY_FROM_LEVEL)(level))
 
 const leadVoice = R.pipe(transpose(-24), noteAt.mode.set('decay'))
 
@@ -85,13 +96,24 @@ export const LEAD: Track = {
 export const BASS: Track = {
   joinsAt: 1,
   notes: BASS_ROOTS.flatMap(bassBar),
-  arrangeFor: R.always(R.identity)
+  arrangeFor: keyFor
 }
 
-export const SONG: Song = [LEAD, BASS]
+const GAP_TONE: Note = { ...leadVoice(note('A4')), volume: 0 }
+
+const gapsAround = (n: NoteOrRest): readonly NoteOrRest[] =>
+  n ? R.repeat(null, n.length) : [GAP_TONE]
+
+export const GAPS: Track = {
+  joinsAt: 5,
+  notes: MELODY.flatMap(gapsAround),
+  arrangeFor: melodyArrangementFor
+}
+
+export const SONG: Song = [LEAD, BASS, GAPS]
 
 export const DRIVE_BY_LEVEL: LevelCurve = [
-  [4, 1],
+  [4, 0.5],
   [6, 20]
 ]
 

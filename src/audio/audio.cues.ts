@@ -1,4 +1,3 @@
-import * as R from 'ramda'
 import type { GameEvent } from '../logic/logic.model'
 import { CUE_STEP_SECONDS } from './audio.constants'
 import { addLength } from './audio.lib'
@@ -42,4 +41,4 @@ export const cueFor = (event: GameEvent): Cue =>
   event.type === 'linesCleared' ? CUES.linesCleared(event.count) : CUES[event.type]
 
 export const cueSeconds = (cue: Cue) =>
-  R.multiply(CUE_STEP_SECONDS, cue.reduce(addLength, 0))
+  cue.reduce(addLength, 0) * CUE_STEP_SECONDS
