@@ -22,3 +22,5 @@ export const EFFECTS_BUS_GAIN = 0.6
 export const PULSE_HARMONICS = 32
 export const NOISE_SECONDS = 1
 export const NOISE_DECAY_SECONDS = 0.06
+export const LOUDNESS_PERIODS = 64
+export const LOUDNESS_SAMPLES = 2048

@@ -6,6 +6,7 @@ import {
   addLength,
   fullCharacterFrom,
   hz,
+  loudnessThroughShaper,
   notesAt,
   onBus,
   semitoneOf,
@@ -22,6 +23,8 @@ import {
   LEAD,
   SONG,
   driveFor,
+  drivenGainFor,
+  leadLoudnessAt,
   stepSecondsFor
 } from '../audio.song'
 import type { Instrument, LevelCurve, Note, PlayMode, Pitch, Track } from '../audio.model'
@@ -56,8 +59,8 @@ describe('melody arrangement', () => {
     instrument: 'pulse'
   }
 
-  it('keeps the pulse wave through the early levels', () => {
-    R.range(MIN_LEVEL, fullCharacterFrom(DRIVE_BY_LEVEL)).forEach((level) =>
+  it('keeps the pulse wave through the clean levels', () => {
+    R.range(MIN_LEVEL, cleanLevelsEnd + 1).forEach((level) =>
       expect(LEAD.arrangeFor(level)(melodyNote).instrument).toBe('pulse')
     )
   })
@@ -73,7 +76,7 @@ describe('melody arrangement', () => {
     [15, 'G#2', 1.52, 'both', 'square']
   ]
 
-  it.each(legacy.filter(([level]) => level >= fullCharacterFrom(DRIVE_BY_LEVEL)))(
+  it.each(legacy.filter(([level]) => level > cleanLevelsEnd))(
     'matches the legacy arrangement at level %i',
     (level, pitch, volume, mode, instrument) => {
       const n = LEAD.arrangeFor(level)(melodyNote)
@@ -121,6 +124,30 @@ describe('drive', () => {
       .forEach((level) =>
         expect(voicePeakAt(SONG, level, 'driven') * driveFor(level)).toBeLessThanOrEqual(1)
       )
+  })
+
+  it('gets louder through the shaper as drive rises', () => {
+    expect(loudnessThroughShaper(2, 1)).toBeGreaterThan(loudnessThroughShaper(1, 1))
+    expect(loudnessThroughShaper(20, 1)).toBeGreaterThan(loudnessThroughShaper(2, 1))
+  })
+
+  it('raises drive gradually after the clean levels', () => {
+    R.range(cleanLevelsEnd, MAX_LEVEL).forEach((level) =>
+      expect(driveFor(level + 1)).toBeLessThanOrEqual(driveFor(level) * 3)
+    )
+  })
+
+  it('leaves the lead at full gain through the clean levels', () => {
+    R.range(MIN_LEVEL, cleanLevelsEnd + 1).forEach((level) =>
+      expect(drivenGainFor(level)).toBe(1)
+    )
+  })
+
+  it('keeps the driven lead as loud as the last clean level', () => {
+    const cleanLoudness = leadLoudnessAt(cleanLevelsEnd)
+    R.range(cleanLevelsEnd + 1, MAX_LEVEL + 1).forEach((level) =>
+      expect(leadLoudnessAt(level) * drivenGainFor(level)).toBeCloseTo(cleanLoudness)
+    )
   })
 
   it('never clips the clean bus', () => {

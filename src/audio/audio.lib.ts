@@ -1,7 +1,13 @@
 import * as R from 'ramda'
 import type { Level } from '../logic/logic.model'
 import { clamp, mapToNewRange } from '../util/fp'
-import { A4_HZ } from './audio.constants'
+import {
+  A4_HZ,
+  LOUDNESS_PERIODS,
+  LOUDNESS_SAMPLES,
+  PULSE_DUTY,
+  SILENT_GAIN
+} from './audio.constants'
 import { noteAt } from './audio.lens'
 import { NOTE_NAMES, OCTAVES } from './audio.model'
 import type {
@@ -101,12 +107,31 @@ export const onBus = (bus: Bus) => (track: Track) => track.bus === bus
 export const voicePeakAt = (song: Song, level: Level, bus: Bus) =>
   R.sum(activeTracks(song, level).filter(onBus(bus)).map(peakVolumeOf(level)))
 
+const clip = (x: number) => clamp(-1, 1, x)
+
+const pulseAt = (phase: number) =>
+  phase < PULSE_DUTY ? 1 : -PULSE_DUTY / (1 - PULSE_DUTY)
+
+const decayingPulseAt = (sample: number) => {
+  const t = sample / LOUDNESS_SAMPLES
+  return pulseAt((t * LOUDNESS_PERIODS) % 1) * SILENT_GAIN ** t
+}
+
+const DECAYING_PULSE = R.range(0, LOUDNESS_SAMPLES).map(decayingPulseAt)
+
+const square = (x: number) => x * x
+
+const rms = (samples: readonly number[]) => Math.sqrt(R.mean(samples.map(square)))
+
+export const loudnessThroughShaper = (drive: number, amplitude: number) =>
+  rms(DECAYING_PULSE.map(R.pipe(R.multiply(drive * amplitude), clip)))
+
 export const createDistortionCurve = (amount: number) => {
   const samples = 44100
   const curve = new Float32Array(samples)
   for (let i = 0; i < samples; ++i) {
     const x = (i * 2) / samples - 1
-    curve[i] = Math.max(-1, Math.min(1, amount * x))
+    curve[i] = clip(amount * x)
   }
   return curve
 }

@@ -6,7 +6,13 @@ import {
   KICK_VOLUME,
   SNARE_VOLUME
 } from './audio.constants'
-import { transpose, transposePitch, valueAt } from './audio.lib'
+import {
+  loudnessThroughShaper,
+  transpose,
+  transposePitch,
+  valueAt,
+  voicePeakAt
+} from './audio.lib'
 import { noteAt } from './audio.lens'
 import type { Level } from '../logic/logic.model'
 import type {
@@ -187,17 +193,24 @@ export const SONG: Song = [LEAD, BASS, HATS, DRUMS, ARPEGGIO, GAPS]
 
 export const DRIVE_BY_LEVEL: LevelCurve = [
   [4, 0.5],
-  [6, 20]
+  [5, 1],
+  [6, 2],
+  [8, 6],
+  [10, 20]
 ]
 
 export const driveFor = valueAt(DRIVE_BY_LEVEL)
 
-export const DRIVEN_GAIN_BY_LEVEL: LevelCurve = [
-  [4, 1],
-  [5, 0.35]
-]
+const leadPeakAt = (level: Level) => voicePeakAt([LEAD], level, 'driven')
 
-export const drivenGainFor = valueAt(DRIVEN_GAIN_BY_LEVEL)
+export const leadLoudnessAt = R.memoizeWith(String, (level: Level) =>
+  loudnessThroughShaper(driveFor(level), leadPeakAt(level))
+)
+
+const [[lastCleanLevel]] = DRIVE_BY_LEVEL
+
+export const drivenGainFor = (level: Level) =>
+  Math.min(1, leadLoudnessAt(lastCleanLevel) / leadLoudnessAt(level))
 
 export const STEP_SECONDS_BY_LEVEL: LevelCurve = [
   [1, 0.3125],
