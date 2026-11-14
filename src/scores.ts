@@ -12,3 +12,8 @@ export const decodeHighScores = (v: unknown): readonly Score[] =>
 
 export const recordScore = (scores: readonly Score[], score: Score) =>
   score > 0 ? [...scores, score].sort(highestFirst).slice(0, KEPT) : scores
+
+export const passesBest =
+  ([best]: readonly Score[]) =>
+  (before: Score, after: Score) =>
+    best !== undefined && before <= best && after > best
