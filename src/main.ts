@@ -10,7 +10,14 @@ import type { Action, GameEvent, State, Timestamp } from './logic/logic.model'
 import { SAVE_STORAGE_KEY, fromSave, toSave } from './logic/logic.persist'
 import { SOUND_STATE_STORAGE_KEY } from './audio/audio.constants'
 import { playEvent, setGlobalGain, startSoundtrack } from './audio/audio'
-import { HIGH_SCORES_STORAGE_KEY, decodeHighScores, recordScore } from './scores'
+import {
+  HIGH_SCORES_STORAGE_KEY,
+  decodeHighScores,
+  passesBest,
+  recordScore
+} from './scores'
+import { createToast } from './toast/toast'
+import { toastFor } from './toast/toast.messages'
 import { boolean } from './util/decode'
 import { freshSeed } from './util/random'
 import { load, store } from './util/storage'
@@ -23,6 +30,9 @@ const element = (id: string) => {
 const drawBoard = createBoardView(element('board'))
 const statsElement = element('stats')
 const soundCheckbox = element('sound-checkbox') as HTMLInputElement
+const showToast = createToast(element('toast'))
+
+const NEW_BEST_TOAST = 'new best!'
 
 let currentState: State
 let queuedAction: Action | null = null
@@ -39,8 +49,14 @@ const queueAction = (e: KeyboardEvent) => {
   queuedAction = action
 }
 
+const announce = (event: GameEvent) => {
+  const toast = toastFor(event)
+  if (toast) showToast(toast)
+}
+
 const handleEvent = (event: GameEvent) => {
   playEvent(event)
+  announce(event)
   if (event.type === 'gameOver') {
     highScores = recordScore(highScores, event.finalScore)
     store(HIGH_SCORES_STORAGE_KEY, highScores)
@@ -58,8 +74,12 @@ const frame = (
   events: readonly GameEvent[],
   lastTick: Timestamp
 ) => {
+  const newBest =
+    currentState !== undefined &&
+    passesBest(highScores)(currentState.score, state.score)
   currentState = state
   events.forEach(handleEvent)
+  if (newBest) showToast(NEW_BEST_TOAST)
   drawBoard(state)
   if (events.length > 0) {
     drawStats(statsElement, state, highScores)
