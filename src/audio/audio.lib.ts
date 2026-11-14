@@ -57,7 +57,7 @@ export const stepSecondsFor = R.pipe(
   R.multiply(BASE_STEP_SECONDS)
 )
 
-const stepsOf = (n: NoteOrRest) => n?.length ?? 1
+export const stepsOf = (n: NoteOrRest) => n?.length ?? 1
 
 export const addLength = (total: Steps, n: NoteOrRest) => total + stepsOf(n)
 

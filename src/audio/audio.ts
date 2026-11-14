@@ -1,93 +1,88 @@
-import type { Level } from '../logic/logic.model'
+import type { GameEvent, Level } from '../logic/logic.model'
 import {
-  ATTACK_SECONDS,
-  PEAK_GAIN,
-  SILENT_GAIN
+  CUE_STEP_SECONDS,
+  LOOKAHEAD_SECONDS,
+  MUSIC_BUS_GAIN,
+  MUSIC_FADE_SECONDS,
+  SCHEDULER_INTERVAL_MS
 } from './audio.constants'
+import { cueFor, cueSeconds } from './audio.cues'
+import type { Cue } from './audio.cues'
+import { notesAt, songLength, stepSecondsFor, stepsOf } from './audio.lib'
+import type { Seconds, Steps } from './audio.model'
+import { SONG, driveFor } from './audio.song'
 import {
-  createDistortionCurve,
-  hz,
-  stepSecondsFor
-} from './audio.lib'
-import type { Note } from './audio.model'
-import { LEAD } from './audio.song'
+  audioContext,
+  effectsBus,
+  musicBus,
+  play,
+  setDrive,
+  setMasterGain
+} from './audio.synth'
 
-const audioContext = new AudioContext()
-const globalGain = audioContext.createGain()
-const distortion = audioContext.createWaveShaper()
-distortion.curve = createDistortionCurve(20)
-distortion.oversample = 'none'
-const reverb = audioContext.createConvolver()
+const SONG_LENGTH = songLength(SONG)
 
-distortion.connect(reverb)
-reverb.connect(globalGain)
-globalGain.connect(audioContext.destination)
+let step: Steps = 0
+let nextStepTime: Seconds = 0
+let scheduler: ReturnType<typeof setInterval> | null = null
+const sounding = new Set<AudioScheduledSourceNode>()
 
-fetch('../impulse-response.wav')
-  .then((response) => response.arrayBuffer())
-  .then((buffer) => audioContext.decodeAudioData(buffer))
-  .then((impulse) => {
-    reverb.buffer = impulse
-  })
-  .catch((err) => console.error(err))
-
-const scheduleEnvelope = (
-  gain: AudioParam,
-  note: Note,
-  start: number,
-  duration: number
-) => {
-  const end = start + duration
-  const attackEnd = start + Math.min(ATTACK_SECONDS, duration / 2)
-  switch (note.mode) {
-    case 'normal':
-      gain.value = note.volume
-      return
-    case 'attack':
-      gain.setValueAtTime(SILENT_GAIN, start)
-      gain.exponentialRampToValueAtTime(PEAK_GAIN, attackEnd)
-      return
-    case 'decay':
-      gain.setValueAtTime(note.volume, start)
-      gain.exponentialRampToValueAtTime(SILENT_GAIN, end)
-      return
-    case 'both':
-      gain.setValueAtTime(SILENT_GAIN, start)
-      gain.exponentialRampToValueAtTime(PEAK_GAIN, attackEnd)
-      gain.exponentialRampToValueAtTime(SILENT_GAIN, end)
-      return
-  }
+const trackSounding = (source: AudioScheduledSourceNode) => {
+  sounding.add(source)
+  source.onended = () => sounding.delete(source)
 }
 
-const oscillatorTypeOf = (note: Note): OscillatorType =>
-  note.instrument === 'pulse' || note.instrument === 'noise' ? 'square' : note.instrument
-
-const playNote = (note: Note, start: number, duration: number) => {
-  const oscillator = audioContext.createOscillator()
-  const volume = audioContext.createGain()
-  oscillator.type = oscillatorTypeOf(note)
-  oscillator.frequency.value = hz(note.pitch)
-  scheduleEnvelope(volume.gain, note, start, duration)
-  oscillator.connect(volume)
-  volume.connect(distortion)
-  oscillator.start(start)
-  oscillator.stop(start + duration)
-}
-
-const playLoop = (getLevel: () => Level) => {
-  const level = getLevel()
+const scheduleStep = (level: Level) => {
   const stepSeconds = stepSecondsFor(level)
-  let time = audioContext.currentTime
-  for (const note of LEAD.notes) {
-    const duration = (note?.length ?? 1) * stepSeconds
-    if (note) playNote(LEAD.arrangeFor(level)(note), time, duration)
-    time += duration
+  setDrive(driveFor(level))
+  for (const note of notesAt(SONG, level, step)) {
+    trackSounding(play(note, nextStepTime, note.length * stepSeconds, musicBus))
   }
-  setTimeout(() => playLoop(getLevel), (time - audioContext.currentTime) * 1000)
+  nextStepTime += stepSeconds
+  step = (step + 1) % SONG_LENGTH
 }
 
-export const startSoundtrack = (getLevel: () => Level) => playLoop(getLevel)
-
-export const setGlobalGain = (gain: number) => {
-  globalGain.gain.value = gain
+const scheduleAhead = (getLevel: () => Level) => () => {
+  nextStepTime = Math.max(nextStepTime, audioContext.currentTime)
+  while (nextStepTime < audioContext.currentTime + LOOKAHEAD_SECONDS) {
+    scheduleStep(getLevel())
+  }
 }
+
+export const startSoundtrack = (getLevel: () => Level) => {
+  void audioContext.resume()
+  if (scheduler !== null) return
+  nextStepTime = audioContext.currentTime
+  scheduler = setInterval(scheduleAhead(getLevel), SCHEDULER_INTERVAL_MS)
+}
+
+const playCue = (cue: Cue) => {
+  let start = audioContext.currentTime
+  for (const note of cue) {
+    const duration = stepsOf(note) * CUE_STEP_SECONDS
+    if (note) play(note, start, duration, effectsBus)
+    start += duration
+  }
+}
+
+const restartMusicAfter = (pause: Seconds) => {
+  const now = audioContext.currentTime
+  const fadeEnd = now + MUSIC_FADE_SECONDS
+  const restartAt = now + pause
+  musicBus.gain.cancelScheduledValues(now)
+  musicBus.gain.setValueAtTime(musicBus.gain.value, now)
+  musicBus.gain.linearRampToValueAtTime(0, fadeEnd)
+  musicBus.gain.setValueAtTime(MUSIC_BUS_GAIN, restartAt)
+  sounding.forEach((source) => source.stop(fadeEnd))
+  sounding.clear()
+  step = 0
+  nextStepTime = restartAt
+}
+
+export const playEvent = (event: GameEvent) => {
+  const cue = cueFor(event)
+  playCue(cue)
+  if (event.type === 'gameOver') restartMusicAfter(cueSeconds(cue))
+}
+
+export const setGlobalGain = setMasterGain

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createInitialState, renderBoard } from '../logic.lib'
+import { createInitialState, levelOf, renderBoard, startAtLevel } from '../logic.lib'
+import { MAX_LEVEL, MIN_LEVEL } from '../logic.constants'
 import { TetrominoCell as T } from '../logic.model'
 import { makeState } from './harness'
 
@@ -27,5 +28,11 @@ describe('createInitialState', () => {
     ]
     expect(first(1)).not.toEqual(first(2))
     expect([...first(1)].sort()).toEqual([...first(2)].sort())
+  })
+})
+
+describe('startAtLevel', () => {
+  it.each([MIN_LEVEL, 6, MAX_LEVEL])('starts a fresh game at level %i', (level) => {
+    expect(levelOf(startAtLevel(level)(createInitialState(1)))).toBe(level)
   })
 })

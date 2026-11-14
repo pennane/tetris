@@ -4,12 +4,12 @@ import * as R from 'ramda'
 import { createBoardView, drawStats } from './dom'
 import { TICK, input, run } from './logic/logic'
 import { ticksDue } from './logic/logic.clock'
-import { KEY_TO_ACTION } from './logic/logic.constants'
-import { createInitialState, levelOf } from './logic/logic.lib'
+import { KEY_TO_ACTION, MAX_LEVEL, MIN_LEVEL } from './logic/logic.constants'
+import { createInitialState, levelOf, startAtLevel } from './logic/logic.lib'
 import type { Action, GameEvent, State, Timestamp } from './logic/logic.model'
 import { SAVE_STORAGE_KEY, fromSave, toSave } from './logic/logic.persist'
 import { SOUND_STATE_STORAGE_KEY } from './audio/audio.constants'
-import { setGlobalGain, startSoundtrack } from './audio/audio'
+import { playEvent, setGlobalGain, startSoundtrack } from './audio/audio'
 import { HIGH_SCORES_STORAGE_KEY, decodeHighScores, recordScore } from './scores'
 import { boolean } from './util/decode'
 import { freshSeed } from './util/random'
@@ -22,7 +22,7 @@ const element = (id: string) => {
 }
 const drawBoard = createBoardView(element('board'))
 const statsElement = element('stats')
-const musicCheckbox = element('music-checkbox') as HTMLInputElement
+const soundCheckbox = element('sound-checkbox') as HTMLInputElement
 
 let currentState: State
 let queuedAction: Action | null = null
@@ -40,6 +40,7 @@ const queueAction = (e: KeyboardEvent) => {
 }
 
 const handleEvent = (event: GameEvent) => {
+  playEvent(event)
   if (event.type === 'gameOver') {
     highScores = recordScore(highScores, event.finalScore)
     store(HIGH_SCORES_STORAGE_KEY, highScores)
@@ -72,6 +73,20 @@ const frame = (
   })
 }
 
+const devStartingLevel = () => {
+  const level = Number(new URLSearchParams(location.search).get('level'))
+  return import.meta.env.DEV && level >= MIN_LEVEL && level <= MAX_LEVEL
+    ? level
+    : null
+}
+
+const devStartingState = () => {
+  const level = devStartingLevel()
+  return level === null
+    ? null
+    : R.pipe(createInitialState, startAtLevel(level))(freshSeed())
+}
+
 const startGame = (e: KeyboardEvent) => {
   if (hasModifier(e)) return
   e.preventDefault()
@@ -79,22 +94,24 @@ const startGame = (e: KeyboardEvent) => {
   window.addEventListener('keydown', queueAction)
 
   const initial =
-    load(SAVE_STORAGE_KEY, fromSave) ?? createInitialState(freshSeed())
+    devStartingState() ??
+    load(SAVE_STORAGE_KEY, fromSave) ??
+    createInitialState(freshSeed())
   drawStats(statsElement, initial, highScores)
   frame(initial, [], performance.now())
   startSoundtrack(() => levelOf(currentState))
 }
 
-const applyMusicSetting = (on: boolean) => {
-  musicCheckbox.checked = on
+const applySoundSetting = (on: boolean) => {
+  soundCheckbox.checked = on
   setGlobalGain(on ? 0.5 : 0)
 }
 
-musicCheckbox.addEventListener('change', () => {
-  applyMusicSetting(musicCheckbox.checked)
-  store(SOUND_STATE_STORAGE_KEY, musicCheckbox.checked)
+soundCheckbox.addEventListener('change', () => {
+  applySoundSetting(soundCheckbox.checked)
+  store(SOUND_STATE_STORAGE_KEY, soundCheckbox.checked)
 })
-applyMusicSetting(
+applySoundSetting(
   load(SOUND_STATE_STORAGE_KEY, boolean) ?? false
 )
 window.addEventListener('keydown', startGame)

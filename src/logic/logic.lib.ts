@@ -48,6 +48,11 @@ export const levelToSpeed = (level: Level) =>
   )
 
 export const levelOf = R.pipe(at.linesCleared.view, linesClearedToLevel)
+
+const levelToLinesCleared = (level: Level) =>
+  (level - MIN_LEVEL) * LINES_CLEARED_PER_LEVEL
+
+export const startAtLevel = R.pipe(levelToLinesCleared, at.linesCleared.set)
 export const speedOf = R.pipe(levelOf, levelToSpeed)
 
 const isLocked = R.complement(R.equals<Cell>(EMPTY_CELL))
