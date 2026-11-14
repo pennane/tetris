@@ -54,11 +54,18 @@ export type LinesCleared = number
 export type Level = number
 export type Timestamp = number
 
+export type Lock = Readonly<{
+  timer: Ticks
+  resets: number
+  lowestRow: Row
+}>
+
 export type State = Readonly<{
   board: Board
   piece: Piece
   sequence: Sequence
   nextFall: NextFall
+  lock: Lock
   score: Score
   linesCleared: LinesCleared
   seed: Seed

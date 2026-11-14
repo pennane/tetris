@@ -9,6 +9,7 @@ import {
   INSTANT_DROP_SCORE,
   LINES_CLEARED_PER_LEVEL,
   LINES_CLEARED_TO_SCORE,
+  LOCK_DELAY_TICKS,
   MAX_LEVEL,
   MAX_SPEED,
   MIN_LEVEL,
@@ -25,6 +26,7 @@ import type {
   GhostCell,
   Level,
   LinesCleared,
+  Lock,
   Piece,
   Rotation,
   Score,
@@ -72,7 +74,7 @@ export const moveDown = at.pieceRow.over(R.inc)
 export const moveLeft = at.pieceCol.over(R.dec)
 export const moveRight = at.pieceCol.over(R.inc)
 
-export const shouldPlaceDown = R.complement(R.pipe(moveDown, isValidState))
+export const isGrounded = R.complement(R.pipe(moveDown, isValidState))
 
 export const dropToBottom = asLongAs(isValidState, moveDown)
 
@@ -82,9 +84,17 @@ const dropScoreOf = R.pipe(at.pieceType.view, R.prop(R.__, INSTANT_DROP_SCORE))
 
 const addDropScore = (state: State) => addScore(dropScoreOf(state))(state)
 
-const lockOnNextTick = at.nextFall.set(1)
+const lockOnNextTick = at.lockTimer.set(0)
 
-export const instantDrop = R.pipe(lockOnNextTick, dropToBottom, addDropScore)
+export const markLowest = (state: State) =>
+  at.lowestRow.set(at.pieceRow.view(state))(state)
+
+export const instantDrop = R.pipe(
+  dropToBottom,
+  addDropScore,
+  markLowest,
+  lockOnNextTick
+)
 
 const overlayPiece = <A, C>(
   board: Matrix<A>,
@@ -130,6 +140,12 @@ export const spawn = (type: TetrominoCell): Piece => ({
   rotation: 0
 })
 
+export const FRESH_LOCK: Lock = {
+  timer: LOCK_DELAY_TICKS,
+  resets: 0,
+  lowestRow: 0
+}
+
 export const createSequence = (seed: Seed) => {
   const { value: bag, seed: next } = shuffle(TETROMINOES, seed)
   return { value: isNonEmpty(bag) ? bag : TETROMINOES, seed: next }
@@ -144,6 +160,7 @@ export const spawnNext = (state: State) => {
   const [head, ...tail] = at.sequence.view(state)
   return R.pipe(
     at.piece.set(spawn(head)),
+    at.lock.set(FRESH_LOCK),
     isNonEmpty(tail) ? at.sequence.set(tail) : refill
   )(state)
 }
@@ -155,6 +172,7 @@ export const createInitialState = (seed: Seed) => {
     piece: spawn(sequence[0]),
     sequence,
     nextFall: levelToSpeed(MIN_LEVEL),
+    lock: FRESH_LOCK,
     score: 0,
     linesCleared: 0,
     seed: next

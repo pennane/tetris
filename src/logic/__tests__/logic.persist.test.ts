@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { LOCK_DELAY_TICKS } from '../logic.constants'
 import { createInitialState } from '../logic.lib'
 import { fromSave, toSave } from '../logic.persist'
 import { TetrominoCell as T } from '../logic.model'
@@ -10,6 +11,20 @@ describe('save format', () => {
   it('round-trips through JSON', () => {
     const state = { ...createInitialState(3), score: 120 }
     expect(roundTrip(toSave(state))).toEqual(state)
+  })
+
+  it('does not store the lock delay and gives a loaded piece a fresh one', () => {
+    const state = makeState({
+      piece: { type: T.O, col: 4, row: 18, rotation: 0 },
+      lockTimer: 3,
+      lockResets: 7
+    })
+    expect(toSave(state)).not.toHaveProperty('lock')
+    expect(roundTrip(toSave(state))?.lock).toEqual({
+      timer: LOCK_DELAY_TICKS,
+      resets: 0,
+      lowestRow: 0
+    })
   })
 
   it('rejects the legacy unversioned tuple format', () => {
