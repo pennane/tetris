@@ -1,178 +1,171 @@
+import * as R from 'ramda'
+import { asLongAs, isNonEmpty } from '../util/fp'
+import { cellAt, overlay } from '../util/matrix'
+import { shuffle, type Random } from '../util/random'
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
-  CELL_TO_GHOST_CELL_MAP,
-  DEFAULT_CLEARED_LINES,
-  DEFAULT_SCORE,
   DEFAULT_SPEED,
+  INSTANT_DROP_SCORE,
+  LINES_CLEARED_PER_LEVEL,
+  LINES_CLEARED_TO_SCORE,
+  MAX_LEVEL,
   MAX_SPEED,
+  MIN_LEVEL,
+  SHAPES,
+  SPAWN_COLUMN,
   SPEED_INCREASE_PER_LEVEL,
-  TETRONIMO_MATRICES,
-  TETRONIMO_TO_INSTANT_DROP_SCORE
+  TETROMINOES
 } from './logic.constants'
-import {
+import { at } from './logic.lens'
+import { EMPTY_CELL } from './logic.model'
+import type {
   Board,
   Cell,
-  EMPTY_CELL,
-  EmptyCell,
-  GhostCell,
   Level,
+  LinesCleared,
+  Piece,
+  RenderBoard,
+  RenderCell,
   Rotation,
+  Score,
   Sequence,
+  Shape,
   Speed,
   State,
   StatePredicate,
-  TetrominoCell,
-  Tetronimo
+  StateTransformation,
+  TetrominoCell
 } from './logic.model'
-import * as R from 'ramda'
-import {
-  overNextFall,
-  overRotation,
-  overScore,
-  overTetronimoColumn,
-  overTetronimoRow,
-  setNextFall,
-  viewBoard,
-  viewLastExecuted,
-  viewSpeed,
-  viewTetronimoColumn,
-  viewTetronimoMatrix,
-  viewTetronimoRow,
-  viewTetronimoType,
-  viewTimestamp
-} from './logic.lens'
-import { asLongAs } from '../util/fp'
-import { mergeMatrices } from '../util/matrix'
-import { shuffle, randomInt } from '../util/random'
 
-export const toGhostCell = (cell: Cell): GhostCell | EmptyCell => {
-  if (cell === EMPTY_CELL) return EMPTY_CELL
-  return CELL_TO_GHOST_CELL_MAP[cell] || EMPTY_CELL
-}
+export const shapeOf = (piece: Piece): Shape =>
+  SHAPES[piece.rotation][piece.type]
 
-export const isFailState = R.pipe(
-  viewBoard,
-  R.head,
-  R.any(R.pipe(R.equals(EMPTY_CELL), R.not))
+export const linesClearedToLevel = (linesCleared: LinesCleared): Level =>
+  Math.min(
+    Math.floor(linesCleared / LINES_CLEARED_PER_LEVEL) + MIN_LEVEL,
+    MAX_LEVEL
+  )
+
+export const levelToSpeed = (level: Level): Speed =>
+  Math.round(
+    Math.max(DEFAULT_SPEED - level * SPEED_INCREASE_PER_LEVEL, MAX_SPEED)
+  )
+
+export const levelOf = (state: State): Level =>
+  linesClearedToLevel(at.linesCleared.view(state))
+
+export const speedOf = (state: State): Speed => levelToSpeed(levelOf(state))
+
+export const fits = (board: Board, piece: Piece): boolean =>
+  shapeOf(piece).every((row, y) =>
+    row.every(
+      (solid, x) =>
+        !solid || cellAt(board, piece.row + y, piece.col + x) === EMPTY_CELL
+    )
+  )
+
+export const isValidState: StatePredicate = (state) =>
+  fits(at.board.view(state), at.piece.view(state))
+
+export const isFailState: StatePredicate = (state) =>
+  at.board.view(state)[0]?.some((cell) => cell !== EMPTY_CELL) ?? false
+
+const nextRotation = (r: Rotation): Rotation => ((r + 1) % 4) as Rotation
+
+export const rotate = at.pieceRotation.over(nextRotation)
+export const moveDown = at.pieceRow.over(R.inc)
+export const moveLeft = at.pieceCol.over(R.dec)
+export const moveRight = at.pieceCol.over(R.inc)
+
+export const shouldPlaceDown: StatePredicate = R.complement(
+  R.pipe(moveDown, isValidState)
 )
 
-export const isValidState: StatePredicate = (state) => {
-  const board = viewBoard(state)
-  const tetronimoColumn = viewTetronimoColumn(state)
-  const tetronimoRow = viewTetronimoRow(state)
-  const matrix = viewTetronimoMatrix(state)
-
-  for (let i = 0; i < matrix.length; i++) {
-    for (let j = 0; j < matrix[0].length; j++) {
-      if (!matrix[i]?.[j]) continue
-
-      const cell = board?.[tetronimoRow + i]?.[tetronimoColumn + j]
-      if (cell !== EMPTY_CELL) {
-        return false
-      }
-    }
-  }
-
-  return true
-}
-
-export const shouldPlaceDown: StatePredicate = (state) => {
-  const board = viewBoard(state)
-  const row = viewTetronimoRow(state)
-  const col = viewTetronimoColumn(state)
-  const matrix = viewTetronimoMatrix(state)
-
-  for (let y = row; y < row + matrix.length; y++) {
-    for (let x = col; x < col + matrix.length; x++) {
-      const isCurrentSolid = R.path([y - row, x - col], matrix)
-      if (!isCurrentSolid) continue
-
-      const nextInMatrix = R.path([y + 1, x], board)
-
-      if (nextInMatrix !== EMPTY_CELL) {
-        return true
-      }
-    }
-  }
-  return false
-}
-
-const toRotation = (n: number): Rotation => (n % 4) as Rotation
-
-export const rotate = overRotation(R.pipe(R.inc, toRotation))
-export const moveDown = overTetronimoRow(R.inc)
-export const moveLeft = overTetronimoColumn(R.dec)
-export const moveRight = overTetronimoColumn(R.inc)
-export const instantDrop = R.pipe(
-  setNextFall(1),
-  asLongAs(isValidState, moveDown),
-  (state: State) => {
-    const tetronimo = viewTetronimoType(state)
-    return overScore(R.add(TETRONIMO_TO_INSTANT_DROP_SCORE[tetronimo]), state)
-  }
+export const dropToBottom: StateTransformation = asLongAs(
+  isValidState,
+  moveDown
 )
 
-export const decreaseMoveTimer = (state: State): State => {
-  if (viewTimestamp(state) !== viewLastExecuted(state)) return state
-  const speed = viewSpeed(state)
-  return overNextFall(R.ifElse(R.gt(R.__, 0), R.dec, R.always(speed)), state)
-}
+const addDropScore: StateTransformation = (state) =>
+  at.score.over(R.add(INSTANT_DROP_SCORE[at.pieceType.view(state)]))(state)
 
-export const levelToSpeed = (levels: Level): Speed => {
-  const speed = Math.round(
-    Math.max(DEFAULT_SPEED - levels * SPEED_INCREASE_PER_LEVEL, MAX_SPEED)
+/** Lock is deferred to the next tick so the piece can still slide. */
+export const instantDrop: StateTransformation = R.pipe(
+  at.nextFall.set(1),
+  dropToBottom,
+  addDropScore
+)
+
+export const mergePiece = (board: Board, piece: Piece): Board =>
+  overlay(board, shapeOf(piece), piece.row, piece.col, (cell, solid) =>
+    solid ? piece.type : cell
   )
-  return speed
-}
 
-export const mergeTetronimoToBoard = (
-  board: Board,
-  tetronimo: Tetronimo
-): Board => {
-  const [x, y] = [tetronimo[1], tetronimo[2]]
-  const matrix = TETRONIMO_MATRICES[tetronimo[3]][tetronimo[0]]
-
-  return mergeMatrices(board, matrix, x, y, (boardItem, tetronimoItem) =>
-    tetronimoItem ? tetronimo[0] : boardItem
+export const renderBoard = (state: State): RenderBoard => {
+  const piece = at.piece.view(state)
+  const ghost = at.piece.view(dropToBottom(state))
+  const withGhost = overlay(
+    at.board.view(state),
+    shapeOf(ghost),
+    ghost.row,
+    ghost.col,
+    (cell, solid): RenderCell => (solid ? { ghostOf: ghost.type } : cell)
   )
-}
-
-export const mergeGhostTetronimoToBoard = (
-  board: Board,
-  tetronimo: Tetronimo
-) => {
-  const [x, y] = [tetronimo[1], tetronimo[2]]
-  const matrix = TETRONIMO_MATRICES[tetronimo[3]][tetronimo[0]]
-  const ghostCell = toGhostCell(tetronimo[0])
-
-  return mergeMatrices(board, matrix, x, y, (boardItem, tetronimoItem) =>
-    tetronimoItem ? (ghostCell as Cell) : boardItem
+  return overlay(withGhost, shapeOf(piece), piece.row, piece.col, (cell, solid) =>
+    solid ? piece.type : cell
   )
 }
 
-export const createInitialState = (): State => {
-  const [tetronimo, ...tail] = createSequence()
-
-  return {
-    board: createEmptyBoard(),
-    tetronimo: [tetronimo, 4, 0, createRotation()],
-    speed: DEFAULT_SPEED,
-    sequence: tail,
-    nextFall: DEFAULT_SPEED,
-    score: DEFAULT_SCORE,
-    linesCleared: DEFAULT_CLEARED_LINES,
-    lastExecuted: 0,
-    timestamp: 0
-  }
-}
-
-export const createEmptyRow = (): Cell[] => R.repeat(EMPTY_CELL, BOARD_WIDTH)
+export const createEmptyRow = (): readonly Cell[] =>
+  R.repeat<Cell>(EMPTY_CELL, BOARD_WIDTH)
 
 export const createEmptyBoard = (): Board =>
-  R.times(() => createEmptyRow(), BOARD_HEIGHT)
+  R.times(createEmptyRow, BOARD_HEIGHT)
 
-export const createSequence = (): Sequence =>
-  shuffle(Object.values(TetrominoCell))
+export const clearFullRows = (
+  board: Board
+): { board: Board; cleared: number } => {
+  const kept = board.filter((row) => row.includes(EMPTY_CELL))
+  const cleared = board.length - kept.length
+  return { board: [...R.times(createEmptyRow, cleared), ...kept], cleared }
+}
 
-export const createRotation = (): Rotation => randomInt(0, 3) as Rotation
+export const lineClearScore = (cleared: number, level: Level): Score =>
+  (LINES_CLEARED_TO_SCORE[cleared] ?? 0) * level
+
+export const spawn = (type: TetrominoCell): Piece => ({
+  type,
+  col: SPAWN_COLUMN,
+  row: 0,
+  rotation: 0
+})
+
+export const createSequence = (random: Random = Math.random): Sequence => {
+  const bag = shuffle(TETROMINOES, random)
+  return isNonEmpty(bag) ? bag : TETROMINOES
+}
+
+/** Pops the next piece, refilling the bag so a preview always exists. */
+export const spawnNext =
+  (random: Random = Math.random): StateTransformation =>
+  (state) => {
+    const [head, ...tail] = at.sequence.view(state)
+    return R.pipe(
+      at.piece.set(spawn(head)),
+      at.sequence.set(isNonEmpty(tail) ? tail : createSequence(random))
+    )(state)
+  }
+
+export const createInitialState = (random: Random = Math.random): State => {
+  const [first, ...rest] = createSequence(random)
+  return {
+    board: createEmptyBoard(),
+    piece: spawn(first),
+    sequence: isNonEmpty(rest) ? rest : createSequence(random),
+    nextFall: levelToSpeed(MIN_LEVEL),
+    score: 0,
+    linesCleared: 0,
+    lastTick: 0
+  }
+}

@@ -1,7 +1,5 @@
-import { CELL_TO_GHOST_CELL_MAP } from './logic.constants'
-
-export type GenericMatrix<T> = T[][]
-export type Matrix = GenericMatrix<0 | 1>
+import type { NonEmpty } from '../util/fp'
+import type { Matrix } from '../util/matrix'
 
 export enum Action {
   LEFT = 'LEFT',
@@ -21,40 +19,58 @@ export enum TetrominoCell {
   Z = 'Z'
 }
 
-export type GhostCell =
-  (typeof CELL_TO_GHOST_CELL_MAP)[keyof typeof CELL_TO_GHOST_CELL_MAP]
-export type EmptyCell = 'E'
 export const EMPTY_CELL = 'E'
-
+export type EmptyCell = typeof EMPTY_CELL
 export type Cell = TetrominoCell | EmptyCell
 
-export type Board = GenericMatrix<Cell>
+/** Board as stored: only locked cells. */
+export type Board = Matrix<Cell>
+
+/** Board as drawn: also the falling piece and its landing preview. */
+export type GhostCell = Readonly<{ ghostOf: TetrominoCell }>
+export type RenderCell = Cell | GhostCell
+export type RenderBoard = Matrix<RenderCell>
+
+export type Shape = Matrix<0 | 1>
 
 export type Column = number
 export type Row = number
 export type Rotation = 0 | 1 | 2 | 3
 
-export type Tetronimo = [TetrominoCell, Column, Row, Rotation]
+export type Piece = Readonly<{
+  type: TetrominoCell
+  col: Column
+  row: Row
+  rotation: Rotation
+}>
 
+export type Sequence = NonEmpty<TetrominoCell>
+/** Ticks until the next gravity step. */
 export type NextFall = number
-export type Sequence = TetrominoCell[]
+/** Ticks between gravity steps. */
 export type Speed = number
 export type Score = number
 export type LinesCleared = number
 export type Level = number
 export type Timestamp = number
 
-export type State = {
+export type State = Readonly<{
   board: Board
-  tetronimo: Tetronimo
-  nextFall: NextFall
+  piece: Piece
   sequence: Sequence
-  speed: Speed
+  nextFall: NextFall
   score: Score
   linesCleared: LinesCleared
-  timestamp: Timestamp
-  lastExecuted: Timestamp
-}
+  lastTick: Timestamp
+}>
+
+export type GameEvent =
+  | Readonly<{ type: 'pieceLocked' }>
+  | Readonly<{ type: 'linesCleared'; count: number }>
+  | Readonly<{ type: 'levelUp'; level: Level }>
+  | Readonly<{ type: 'gameOver'; finalScore: Score }>
+
+export type Outcome = Readonly<{ state: State; events: readonly GameEvent[] }>
 
 export type StateTransformation = (state: State) => State
 export type StatePredicate = (state: State) => boolean

@@ -1,86 +1,93 @@
-import { viewLevel } from '../logic/logic.lens'
-import { M_CURRENT_STATE } from '../main'
+import type { Level } from '../logic/logic.model'
 import {
-  LEVEL_TO_NOTE_TRANSFORMER,
-  NOTE_TO_HZ,
-  LEVEL_ONE_TETRIS_NOTES
+  ATTACK_SECONDS,
+  PEAK_GAIN,
+  SILENT_GAIN
 } from './music.constants'
-import { overDuration } from './music.lens'
-import { createDistortionCurve, levelToMusicSpeedMultiplier } from './music.lib'
-import { Note } from './music.model'
+import { noteAt } from './music.lens'
+import {
+  createDistortionCurve,
+  hz,
+  levelToMusicSpeedMultiplier
+} from './music.lib'
+import type { Note } from './music.model'
+import { SOUNDTRACK, noteTransformerFor } from './music.song'
 
 const audioContext = new AudioContext()
-
 const globalGain = audioContext.createGain()
-
 const distortion = audioContext.createWaveShaper()
-
 distortion.curve = createDistortionCurve(20)
 distortion.oversample = 'none'
-
 const reverb = audioContext.createConvolver()
 
-// Load an impulse response
+distortion.connect(reverb)
+reverb.connect(globalGain)
+globalGain.connect(audioContext.destination)
+
 fetch('../impulse-response.wav')
   .then((response) => response.arrayBuffer())
-  .then((arrayBuffer) => audioContext.decodeAudioData(arrayBuffer))
-  .then((audioBuffer) => {
-    reverb.buffer = audioBuffer
+  .then((buffer) => audioContext.decodeAudioData(buffer))
+  .then((impulse) => {
+    reverb.buffer = impulse
   })
   .catch((err) => console.error(err))
 
-const playNote = (note: Note, time: number) => {
-  const oscillator = audioContext.createOscillator()
-  const noteVolume = audioContext.createGain()
-
-  oscillator.type = note[4]
-  oscillator.frequency.value = NOTE_TO_HZ.get(note[0])!
-
-  noteVolume.gain.value = note[2]
-
-  if (note[3] === 'attack') {
-    noteVolume.gain.setValueAtTime(0.01, time)
-    noteVolume.gain.exponentialRampToValueAtTime(0.5, time + 0.5) // increase volume to the desired level over the attack duration
-  } else if (note[3] === 'decay') {
-    noteVolume.gain.setValueAtTime(note[2], time)
-    noteVolume.gain.exponentialRampToValueAtTime(0.01, time + note[1]) // decrease volume to near 0 over the duration of the note
-  } else if (note[3] === 'both') {
-    noteVolume.gain.setValueAtTime(0.01, time)
-    noteVolume.gain.exponentialRampToValueAtTime(0.5, time + 0.5) // increase volume to the desired level over the attack duration
-    noteVolume.gain.setValueAtTime(note[2], time)
-    noteVolume.gain.exponentialRampToValueAtTime(0.01, time + note[1]) // decrease volume to near 0 over the duration of the notex§
+const scheduleEnvelope = (gain: AudioParam, note: Note, start: number) => {
+  const end = start + note.duration
+  const attackEnd = start + Math.min(ATTACK_SECONDS, note.duration / 2)
+  switch (note.mode) {
+    case 'normal':
+      gain.value = note.volume
+      return
+    case 'attack':
+      gain.setValueAtTime(SILENT_GAIN, start)
+      gain.exponentialRampToValueAtTime(PEAK_GAIN, attackEnd)
+      return
+    case 'decay':
+      gain.setValueAtTime(note.volume, start)
+      gain.exponentialRampToValueAtTime(SILENT_GAIN, end)
+      return
+    case 'both':
+      gain.setValueAtTime(SILENT_GAIN, start)
+      gain.exponentialRampToValueAtTime(PEAK_GAIN, attackEnd)
+      gain.exponentialRampToValueAtTime(SILENT_GAIN, end)
+      return
   }
+}
 
-  oscillator.connect(noteVolume)
-  noteVolume.connect(distortion)
-  distortion.connect(reverb)
-  reverb.connect(globalGain)
-  globalGain.connect(audioContext.destination)
-
-  oscillator.start(time)
-  oscillator.stop(time + note[1])
-
+const playNote = (note: Note, start: number): OscillatorNode => {
+  const oscillator = audioContext.createOscillator()
+  const volume = audioContext.createGain()
+  oscillator.type = note.waveform
+  oscillator.frequency.value = hz(note.pitch)
+  scheduleEnvelope(volume.gain, note, start)
+  oscillator.connect(volume)
+  volume.connect(distortion)
+  oscillator.start(start)
+  oscillator.stop(start + note.duration)
   return oscillator
 }
 
-const playIndefinite = (notes: Note[]) => {
-  let currentTime = audioContext.currentTime
-  let lastOscillator: OscillatorNode | null = null
+/** Re-reads the level each loop so tempo and timbre follow the game. */
+const playLoop = (notes: readonly Note[], getLevel: () => Level) => {
+  const level = getLevel()
+  const speed = levelToMusicSpeedMultiplier(level)
+  const arranged = notes
+    .map(noteTransformerFor(level))
+    .map(noteAt.duration.over((d) => d * speed))
 
-  notes
-    .map(LEVEL_TO_NOTE_TRANSFORMER(viewLevel(M_CURRENT_STATE)))
-    .map(
-      overDuration((s) => {
-        const level = viewLevel(M_CURRENT_STATE)
-        return s * levelToMusicSpeedMultiplier(level)
-      })
-    )
-    .forEach((note) => {
-      lastOscillator = playNote(note, currentTime)
-      currentTime += note[1]
-    })
-  lastOscillator!.onended = () => playIndefinite(notes)
+  let time = audioContext.currentTime
+  let last: OscillatorNode | null = null
+  for (const note of arranged) {
+    last = playNote(note, time)
+    time += note.duration
+  }
+  if (last) last.onended = () => playLoop(notes, getLevel)
 }
 
-export const startSoundtrack = () => playIndefinite(LEVEL_ONE_TETRIS_NOTES)
-export const setGlobalGain = (gain: number) => (globalGain.gain.value = gain)
+export const startSoundtrack = (getLevel: () => Level) =>
+  playLoop(SOUNDTRACK, getLevel)
+
+export const setGlobalGain = (gain: number) => {
+  globalGain.gain.value = gain
+}

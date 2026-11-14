@@ -1,13 +1,14 @@
 // Only file that knows the State shape, so refactors don't touch tests.
-import { DEFAULT_SPEED, BOARD_HEIGHT } from '../logic/logic.constants'
-import {
+import { BOARD_HEIGHT } from '../logic/logic.constants'
+import { EMPTY_CELL, TetrominoCell } from '../logic/logic.model'
+import type {
   Action,
   Board,
   Cell,
-  EMPTY_CELL,
+  Outcome,
   Rotation,
-  State,
-  TetrominoCell
+  Sequence,
+  State
 } from '../logic/logic.model'
 import { nextState } from '../logic/logic'
 
@@ -34,29 +35,30 @@ export const boardFrom = (bottomRows: string[] = []): Board => {
 export const makeState = (o: {
   piece: PieceSpec
   board?: string[]
-  sequence?: TetrominoCell[]
+  sequence?: Sequence
   nextFall?: number
   score?: number
   linesCleared?: number
 }): State => ({
   board: boardFrom(o.board),
-  tetronimo: [o.piece.type, o.piece.col, o.piece.row, o.piece.rotation],
-  speed: DEFAULT_SPEED,
+  piece: o.piece,
   sequence: o.sequence ?? [TetrominoCell.T, TetrominoCell.S],
   nextFall: o.nextFall ?? 30,
   score: o.score ?? 0,
   linesCleared: o.linesCleared ?? 0,
-  lastExecuted: 0,
-  timestamp: 0
+  lastTick: 0
 })
 
-export const step = (s: State, action: Action | null, ts: number): State =>
-  nextState(s, action, ts)
+export const advance = (
+  s: State,
+  action: Action | null,
+  ts: number
+): Outcome => nextState(s, action, ts)
 
-export const pieceOf = (s: State): PieceSpec => {
-  const [type, col, row, rotation] = s.tetronimo
-  return { type, col, row, rotation }
-}
+export const step = (s: State, action: Action | null, ts: number): State =>
+  advance(s, action, ts).state
+
+export const pieceOf = (s: State): PieceSpec => ({ ...s.piece })
 
 export const boardRows = (s: State): string[] =>
   s.board.map((r) => r.map((c) => (c === EMPTY_CELL ? '.' : c)).join(''))

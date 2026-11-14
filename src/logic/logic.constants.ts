@@ -1,35 +1,34 @@
-import { rotate90, rotate180, rotate270 } from '../util/matrix'
-import { rotate, moveLeft, moveRight, moveDown, instantDrop } from './logic.lib'
-import {
-  TetrominoCell,
-  Matrix,
-  Action,
-  StateTransformation,
-  Score
-} from './logic.model'
 import * as R from 'ramda'
+import { rotate90, rotate180, rotate270 } from '../util/matrix'
+import { Action, TetrominoCell } from './logic.model'
+import type { Rotation, Score, Shape, Speed } from './logic.model'
 
 export const EXECUTE_INTERVAL_MS = 16
 
-export const PERSISTED_STATE_STORAGE_KEY = 'persisted-game-state'
-
 export const BOARD_WIDTH = 10
 export const BOARD_HEIGHT = 20
-
-export const DEFAULT_SPEED = 65
-export const DEFAULT_SCORE = 0
-export const DEFAULT_CLEARED_LINES = 0
+export const SPAWN_COLUMN = 4
 
 export const MIN_LEVEL = 1
 export const MAX_LEVEL = 15
-export const MAX_SPEED = 3
-
 export const LINES_CLEARED_PER_LEVEL = 10
 
+export const DEFAULT_SPEED: Speed = 65
+export const MAX_SPEED: Speed = 3
 export const SPEED_INCREASE_PER_LEVEL =
   (DEFAULT_SPEED - MAX_SPEED) / (MAX_LEVEL - MIN_LEVEL)
 
-const BASE_TETRONIMO_MATRICES: Record<TetrominoCell, Matrix> = {
+export const TETROMINOES = [
+  TetrominoCell.I,
+  TetrominoCell.J,
+  TetrominoCell.L,
+  TetrominoCell.O,
+  TetrominoCell.S,
+  TetrominoCell.T,
+  TetrominoCell.Z
+] as const
+
+const BASE_SHAPES: Readonly<Record<TetrominoCell, Shape>> = {
   [TetrominoCell.I]: [
     [0, 0, 0, 0],
     [1, 1, 1, 1],
@@ -67,14 +66,16 @@ const BASE_TETRONIMO_MATRICES: Record<TetrominoCell, Matrix> = {
   ]
 }
 
-export const TETRONIMO_MATRICES = {
-  0: R.map(R.identity, BASE_TETRONIMO_MATRICES),
-  1: R.map(rotate90, BASE_TETRONIMO_MATRICES),
-  2: R.map(rotate180, BASE_TETRONIMO_MATRICES),
-  3: R.map(rotate270, BASE_TETRONIMO_MATRICES)
-} as const
+export const SHAPES: Readonly<
+  Record<Rotation, Readonly<Record<TetrominoCell, Shape>>>
+> = {
+  0: BASE_SHAPES,
+  1: R.map((s: Shape) => rotate90(s), BASE_SHAPES),
+  2: R.map((s: Shape) => rotate180(s), BASE_SHAPES),
+  3: R.map((s: Shape) => rotate270(s), BASE_SHAPES)
+}
 
-export const KEY_TO_ACTION: Record<string, Action> = {
+export const KEY_TO_ACTION: Readonly<Partial<Record<string, Action>>> = {
   a: Action.LEFT,
   ArrowLeft: Action.LEFT,
   d: Action.RIGHT,
@@ -86,40 +87,16 @@ export const KEY_TO_ACTION: Record<string, Action> = {
   ArrowUp: Action.ROTATE
 }
 
-export const ACTION_TO_TRANSFORMATION: Record<Action, StateTransformation> = {
-  [Action.ROTATE]: rotate,
-  [Action.LEFT]: moveLeft,
-  [Action.RIGHT]: moveRight,
-  [Action.DOWN]: moveDown,
-  [Action.JUMP]: instantDrop
-}
+export const LINES_CLEARED_TO_SCORE: Readonly<Partial<Record<number, Score>>> =
+  {
+    1: 40,
+    2: 100,
+    3: 300,
+    4: 1200
+  }
 
-export const LINES_CLEARED_TO_SCORE: Record<number, number> = {
-  1: 40,
-  2: 100,
-  3: 300,
-  4: 1200
-}
+const countCells = (shape: Shape): Score =>
+  shape.flat().filter((cell) => cell === 1).length
 
-const countMatrixCells = (matrix: Matrix) =>
-  matrix.flatMap((row) => row.filter((cell) => cell === 1)).length
-
-export const TETRONIMO_TO_INSTANT_DROP_SCORE: Record<TetrominoCell, Score> = {
-  [TetrominoCell.I]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.I]),
-  [TetrominoCell.J]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.J]),
-  [TetrominoCell.L]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.L]),
-  [TetrominoCell.O]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.O]),
-  [TetrominoCell.S]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.S]),
-  [TetrominoCell.T]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.T]),
-  [TetrominoCell.Z]: countMatrixCells(BASE_TETRONIMO_MATRICES[TetrominoCell.Z])
-}
-
-export const CELL_TO_GHOST_CELL_MAP = {
-  [TetrominoCell.I]: 'I G',
-  [TetrominoCell.J]: 'J G',
-  [TetrominoCell.L]: 'L G',
-  [TetrominoCell.O]: 'O G',
-  [TetrominoCell.S]: 'S G',
-  [TetrominoCell.T]: 'T G',
-  [TetrominoCell.Z]: 'Z G'
-} as const satisfies Record<TetrominoCell, string>
+export const INSTANT_DROP_SCORE: Readonly<Record<TetrominoCell, Score>> =
+  R.map(countCells, BASE_SHAPES)

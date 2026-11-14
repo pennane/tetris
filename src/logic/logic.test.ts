@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Action, TetrominoCell as T } from './logic.model'
 import {
+  advance,
   boardRows,
   linesOf,
   makeState,
@@ -77,7 +78,63 @@ describe('gravity', () => {
     expect(pieceOf(fell).row).toBe(6)
     const reset = step(fell, null, 2 * TICK)
     expect(pieceOf(reset).row).toBe(6)
-    expect(nextFallOf(reset)).toBe(65) // stored speed; level 1 derives 61
+    expect(nextFallOf(reset)).toBe(61) // level 1 speed
+  })
+
+  it('falls once per tick, not once per frame', () => {
+    const s = makeState({
+      piece: { type: T.T, col: 4, row: 5, rotation: 0 },
+      nextFall: 1
+    })
+    const fell = step(s, null, TICK)
+    expect(pieceOf(step(fell, null, TICK + NO_TICK)).row).toBe(6)
+  })
+})
+
+describe('events', () => {
+  const lockable = (o: Partial<Parameters<typeof makeState>[0]> = {}) =>
+    makeState({
+      piece: { type: T.I, col: 6, row: 18, rotation: 0 },
+      nextFall: 1,
+      ...o
+    })
+
+  it('emits nothing on ordinary frames', () => {
+    expect(advance(lockable({ nextFall: 5 }), Action.LEFT, TICK).events).toEqual(
+      []
+    )
+  })
+
+  it('emits pieceLocked on lock', () => {
+    expect(advance(lockable(), null, TICK).events).toEqual([
+      { type: 'pieceLocked' }
+    ])
+  })
+
+  it('emits linesCleared and levelUp', () => {
+    const { events } = advance(
+      lockable({ board: ['ZZZZZZ....'], linesCleared: 9 }),
+      null,
+      TICK
+    )
+    expect(events).toEqual([
+      { type: 'pieceLocked' },
+      { type: 'linesCleared', count: 1 },
+      { type: 'levelUp', level: 2 }
+    ])
+  })
+
+  it('emits gameOver with the score including the final lock', () => {
+    const { events } = advance(
+      lockable({
+        piece: { type: T.O, col: 0, row: 0, rotation: 0 },
+        board: Array<string>(18).fill('ZZZZZZZZZ.'),
+        score: 500
+      }),
+      null,
+      TICK
+    )
+    expect(events[events.length - 1]).toEqual({ type: 'gameOver', finalScore: 500 })
   })
 })
 

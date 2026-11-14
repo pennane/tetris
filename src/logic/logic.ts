@@ -1,127 +1,100 @@
+import * as R from 'ramda'
+import { EXECUTE_INTERVAL_MS } from './logic.constants'
+import { at } from './logic.lens'
 import {
-  ACTION_TO_TRANSFORMATION,
-  EXECUTE_INTERVAL_MS,
-  LINES_CLEARED_TO_SCORE
-} from './logic.constants'
-import {
-  viewBoard,
-  viewTetronimo,
-  setBoard,
-  viewNextFall,
-  viewSequence,
-  setTetronimo,
-  setSequence,
-  overScoreAndBoardAndLinesCleared,
-  setSpeed,
-  viewLevel,
-  linesClearedToLevel,
-  setLastExecuted,
-  viewLastExecuted,
-  setTimestamp
-} from './logic.lens'
-import {
+  clearFullRows,
   createInitialState,
-  decreaseMoveTimer,
-  createEmptyRow,
-  createSequence,
+  instantDrop,
   isFailState,
   isValidState,
-  mergeTetronimoToBoard,
+  levelOf,
+  lineClearScore,
+  mergePiece,
   moveDown,
+  moveLeft,
+  moveRight,
+  rotate,
   shouldPlaceDown,
-  levelToSpeed
+  spawnNext,
+  speedOf
 } from './logic.lib'
-import { EMPTY_CELL, State, Action, StateTransformation } from './logic.model'
+import { Action } from './logic.model'
+import type {
+  GameEvent,
+  Outcome,
+  State,
+  StateTransformation,
+  Timestamp
+} from './logic.model'
 
-import * as R from 'ramda'
-
-const placeDown: StateTransformation = (state) => {
-  const mergedBoard = R.converge(mergeTetronimoToBoard, [
-    viewBoard,
-    viewTetronimo
-  ])(state)
-
-  return setBoard(mergedBoard, state)
-}
-
-const clearFullRows = overScoreAndBoardAndLinesCleared(
-  (score, board, linesCleared) => {
-    const filtered = board.filter((row) =>
-      row.some((cell) => cell === EMPTY_CELL)
-    )
-
-    const amountCleared = board.length - filtered.length
-    const additionalScore =
-      (LINES_CLEARED_TO_SCORE[amountCleared] ?? 0) *
-      linesClearedToLevel(linesCleared)
-
-    return [
-      score + additionalScore,
-      R.repeat(createEmptyRow(), amountCleared).concat(filtered),
-      linesCleared + amountCleared
-    ]
+const ACTION_TO_TRANSFORMATION: Readonly<Record<Action, StateTransformation>> =
+  {
+    [Action.ROTATE]: rotate,
+    [Action.LEFT]: moveLeft,
+    [Action.RIGHT]: moveRight,
+    [Action.DOWN]: moveDown,
+    [Action.JUMP]: instantDrop
   }
-)
 
-const nextTetronimo: StateTransformation = (state) => {
-  const [head, ...tail] = viewSequence(state)
-  return R.pipe(
-    setTetronimo([head, 4, 0, 0]),
-    setSequence(R.isEmpty(tail) ? createSequence() : tail)
-  )(state)
-}
-
-const checkGameOver = R.when(isFailState, createInitialState)
-
-const updateCurrentLevel: StateTransformation = (state) =>
-  setSpeed(levelToSpeed(viewLevel(state)), state)
-
-const handleFall = R.when(
-  R.pipe(viewNextFall, R.equals(0)),
-  R.ifElse(
-    shouldPlaceDown,
-    R.pipe(
-      placeDown,
-      nextTetronimo,
-      clearFullRows,
-      checkGameOver,
-      updateCurrentLevel
-    ),
-    moveDown
-  )
-)
+const quiet = (state: State): Outcome => ({ state, events: [] })
 
 const handleInput =
-  (action: Action | null) =>
-  (state: State): State => {
-    if (!action) return state
-    const actionFunction = ACTION_TO_TRANSFORMATION[action]
-    if (!actionFunction) return state
-    const modifiedState = actionFunction(state)
-    if (!isValidState(modifiedState)) return state
-    return modifiedState
+  (action: Action | null): StateTransformation =>
+  (state) =>
+    action === null
+      ? state
+      : R.pipe(
+          ACTION_TO_TRANSFORMATION[action],
+          R.ifElse(isValidState, R.identity, R.always(state))
+        )(state)
+
+const lockPiece = (state: State): Outcome => {
+  const levelBefore = levelOf(state)
+  const { board, cleared } = clearFullRows(
+    mergePiece(at.board.view(state), at.piece.view(state))
+  )
+  const locked = R.pipe(
+    at.board.set(board),
+    at.score.over(R.add(lineClearScore(cleared, levelBefore))),
+    at.linesCleared.over(R.add(cleared)),
+    spawnNext()
+  )(state)
+  const levelAfter = levelOf(locked)
+
+  const events: GameEvent[] = [{ type: 'pieceLocked' }]
+  if (cleared > 0) events.push({ type: 'linesCleared', count: cleared })
+  if (levelAfter > levelBefore)
+    events.push({ type: 'levelUp', level: levelAfter })
+
+  if (!isFailState(locked)) return { state: locked, events }
+
+  events.push({ type: 'gameOver', finalScore: at.score.view(locked) })
+  return {
+    state: at.lastTick.set(at.lastTick.view(locked))(createInitialState()),
+    events
   }
+}
 
-const shouldExecute = (timestamp: number) =>
-  R.pipe(
-    viewLastExecuted,
-    (last: number) => timestamp - last > EXECUTE_INTERVAL_MS
+/** One gravity step: counts down, and moves or locks the piece at zero. */
+const gravity = (state: State): Outcome => {
+  const ticked = at.nextFall.over((n) => (n > 0 ? n - 1 : speedOf(state)))(
+    state
   )
+  if (at.nextFall.view(ticked) !== 0) return quiet(ticked)
+  return shouldPlaceDown(ticked) ? lockPiece(ticked) : quiet(moveDown(ticked))
+}
 
-const updateTimetamps = (timestamp: number) =>
-  R.pipe(
-    setTimestamp(timestamp),
-    R.when(shouldExecute(timestamp), setLastExecuted(timestamp))
-  )
+const isTick = (timestamp: Timestamp, state: State) =>
+  timestamp - at.lastTick.view(state) > EXECUTE_INTERVAL_MS
 
+/** Input applies every frame; gravity only on ticks, independent of frame rate. */
 export const nextState = (
   state: State,
   action: Action | null,
-  timestamp: number
-) =>
-  R.pipe(
-    handleInput(action),
-    updateTimetamps(timestamp),
-    decreaseMoveTimer,
-    handleFall
-  )(state)
+  timestamp: Timestamp
+): Outcome => {
+  const afterInput = handleInput(action)(state)
+  return isTick(timestamp, afterInput)
+    ? gravity(at.lastTick.set(timestamp)(afterInput))
+    : quiet(afterInput)
+}

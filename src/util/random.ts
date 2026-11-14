@@ -1,12 +1,7 @@
-export const randomInt = (min: number, max: number) => {
-  min = Math.ceil(min)
-  max = Math.floor(max)
+export type Random = () => number
 
-  return Math.floor(Math.random() * (max - min + 1)) + min
-}
-
-export const shuffle = <T>(arr: T[]): T[] =>
-  arr
-    .map((value) => ({ seed: Math.random(), value: value }))
+export const shuffle = <T>(xs: readonly T[], random: Random = Math.random) =>
+  xs
+    .map((value) => ({ seed: random(), value }))
     .sort((a, b) => a.seed - b.seed)
     .map(({ value }) => value)

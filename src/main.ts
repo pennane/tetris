@@ -1,82 +1,85 @@
 import './style.css'
 
-import * as R from 'ramda'
+import { drawBoard, drawStats } from './dom'
+import { nextState } from './logic/logic'
+import { KEY_TO_ACTION } from './logic/logic.constants'
+import { createInitialState, levelOf } from './logic/logic.lib'
+import type { Action, GameEvent, State } from './logic/logic.model'
+import { SAVE_STORAGE_KEY, fromSave, toSave } from './logic/logic.persist'
+import { MUSIC_STATE_STORAGE_KEY } from './music/music.constants'
+import { setGlobalGain, startSoundtrack } from './music/music'
+import { HIGH_SCORES_STORAGE_KEY, decodeHighScores, recordScore } from './scores'
+import { load, store } from './util/storage'
 
-import {
-  KEY_TO_ACTION,
-  PERSISTED_STATE_STORAGE_KEY
-} from './logic/logic.constants.ts'
-import { drawAndPersist } from './dom'
+const element = (id: string) => {
+  const el = document.getElementById(id)
+  if (!el) throw new Error(`Missing #${id}`)
+  return el
+}
+const boardElement = element('board')
+const statsElement = element('stats')
+const musicCheckbox = element('music-checkbox') as HTMLInputElement
 
-import { setGlobalGain, startSoundtrack } from './music/music.ts'
-import { createInitialState } from './logic/logic.lib.ts'
-import { Action, State } from './logic/logic.model.ts'
-import { nextState } from './logic/logic.ts'
-import { load, store } from './util/storage.ts'
-import { MUSIC_STATE_STORAGE_KEY } from './music/music.constants.ts'
+let currentState: State
+let queuedAction: Action | null = null
+let highScores = load(HIGH_SCORES_STORAGE_KEY, decodeHighScores)
 
-const musicCheckbox = document.getElementById(
-  'music-checkbox'
-)! as HTMLInputElement
-
-// Export state for external imperative bs
-export let M_CURRENT_STATE: State
-
-let M_QUEUED_ACTION: Action | null = null
+const hasModifier = (e: KeyboardEvent) =>
+  e.metaKey || e.ctrlKey || e.shiftKey || e.altKey
 
 const queueAction = (e: KeyboardEvent) => {
-  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+  if (hasModifier(e)) return
   const action = KEY_TO_ACTION[e.key]
   if (!action) return
   e.preventDefault()
-  M_QUEUED_ACTION = action
+  queuedAction = action
 }
 
-const gameLoop = (state: State) => {
-  drawAndPersist(state)
-  M_CURRENT_STATE = state
-  M_QUEUED_ACTION = null
-
-  requestAnimationFrame((timestamp) =>
-    gameLoop(nextState(state, M_QUEUED_ACTION, timestamp))
-  )
+const handleEvent = (event: GameEvent) => {
+  if (event.type === 'gameOver') {
+    highScores = recordScore(highScores, event.finalScore)
+    store(HIGH_SCORES_STORAGE_KEY, highScores)
+  }
 }
 
-const startGameLoop = (e: KeyboardEvent) => {
-  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+const frame = (state: State, events: readonly GameEvent[]) => {
+  currentState = state
+  events.forEach(handleEvent)
+  drawBoard(boardElement, state)
+  if (events.length > 0) {
+    drawStats(statsElement, state, highScores)
+    store(SAVE_STORAGE_KEY, toSave(state))
+  }
+  requestAnimationFrame((timestamp) => {
+    const action = queuedAction
+    queuedAction = null
+    const outcome = nextState(state, action, timestamp)
+    frame(outcome.state, outcome.events)
+  })
+}
+
+const startGame = (e: KeyboardEvent) => {
+  if (hasModifier(e)) return
   e.preventDefault()
-
-  const persistedState = load(
-    PERSISTED_STATE_STORAGE_KEY,
-    (v): State | null => {
-      const state =
-        typeof v === 'object' && !Array.isArray(v) && v !== null
-          ? (v as State)
-          : null
-      if (!state) return null
-      return R.assoc('lastExecuted', 0, state)
-    }
-  )
-
-  gameLoop(persistedState || createInitialState())
-  startSoundtrack()
-
-  window.removeEventListener('keydown', startGameLoop)
+  window.removeEventListener('keydown', startGame)
   window.addEventListener('keydown', queueAction)
+
+  const initial = load(SAVE_STORAGE_KEY, fromSave) ?? createInitialState()
+  drawStats(statsElement, initial, highScores)
+  frame(initial, [])
+  startSoundtrack(() => levelOf(currentState))
 }
 
-const handleMusicCheckboxChange = () => {
-  const checked = musicCheckbox.checked
-  setGlobalGain(checked ? 0.5 : 0)
-  store(checked, MUSIC_STATE_STORAGE_KEY)
+const applyMusicSetting = (on: boolean) => {
+  musicCheckbox.checked = on
+  setGlobalGain(on ? 0.5 : 0)
 }
 
-const musicOn = load(MUSIC_STATE_STORAGE_KEY, (v) =>
-  typeof v === 'boolean' ? v : false
+musicCheckbox.addEventListener('change', () => {
+  applyMusicSetting(musicCheckbox.checked)
+  store(MUSIC_STATE_STORAGE_KEY, musicCheckbox.checked)
+})
+applyMusicSetting(
+  load(MUSIC_STATE_STORAGE_KEY, (v) => (typeof v === 'boolean' ? v : false))
 )
-musicCheckbox.checked = musicOn
-
-setGlobalGain(musicOn ? 0.5 : 0)
-
-musicCheckbox.addEventListener('change', handleMusicCheckboxChange)
-window.addEventListener('keydown', startGameLoop)
+window.addEventListener('keydown', startGame)
