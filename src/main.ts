@@ -8,8 +8,8 @@ import { KEY_TO_ACTION } from './logic/logic.constants'
 import { createInitialState, levelOf } from './logic/logic.lib'
 import type { Action, GameEvent, State, Timestamp } from './logic/logic.model'
 import { SAVE_STORAGE_KEY, fromSave, toSave } from './logic/logic.persist'
-import { MUSIC_STATE_STORAGE_KEY } from './music/music.constants'
-import { setGlobalGain, startSoundtrack } from './music/music'
+import { SOUND_STATE_STORAGE_KEY } from './audio/audio.constants'
+import { setGlobalGain, startSoundtrack } from './audio/audio'
 import { HIGH_SCORES_STORAGE_KEY, decodeHighScores, recordScore } from './scores'
 import { boolean } from './util/decode'
 import { freshSeed } from './util/random'
@@ -92,9 +92,9 @@ const applyMusicSetting = (on: boolean) => {
 
 musicCheckbox.addEventListener('change', () => {
   applyMusicSetting(musicCheckbox.checked)
-  store(MUSIC_STATE_STORAGE_KEY, musicCheckbox.checked)
+  store(SOUND_STATE_STORAGE_KEY, musicCheckbox.checked)
 })
 applyMusicSetting(
-  load(MUSIC_STATE_STORAGE_KEY, boolean) ?? false
+  load(SOUND_STATE_STORAGE_KEY, boolean) ?? false
 )
 window.addEventListener('keydown', startGame)

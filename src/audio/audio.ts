@@ -4,15 +4,15 @@ import {
   ATTACK_SECONDS,
   PEAK_GAIN,
   SILENT_GAIN
-} from './music.constants'
-import { noteAt } from './music.lens'
+} from './audio.constants'
+import { noteAt } from './audio.lens'
 import {
   createDistortionCurve,
   hz,
   levelToDurationMultiplier
-} from './music.lib'
-import type { Note } from './music.model'
-import { SOUNDTRACK, noteTransformerFor } from './music.song'
+} from './audio.lib'
+import type { Note } from './audio.model'
+import { SOUNDTRACK, noteTransformerFor } from './audio.song'
 
 const audioContext = new AudioContext()
 const globalGain = audioContext.createGain()

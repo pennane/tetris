@@ -1,8 +1,8 @@
 import * as R from 'ramda'
-import { transpose } from './music.lib'
-import { noteAt } from './music.lens'
+import { transpose } from './audio.lib'
+import { noteAt } from './audio.lens'
 import type { Level } from '../logic/logic.model'
-import type { Note, Pitch } from './music.model'
+import type { Note, Pitch } from './audio.model'
 
 const note = (pitch: Pitch, duration: number): Note => ({
   pitch,

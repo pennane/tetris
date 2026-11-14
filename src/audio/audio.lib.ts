@@ -5,10 +5,10 @@ import {
   A4_HZ,
   DURATION_MULTIPLIER_AT_MAX_LEVEL,
   DURATION_MULTIPLIER_AT_MIN_LEVEL
-} from './music.constants'
-import { noteAt } from './music.lens'
-import { NOTE_NAMES, OCTAVES } from './music.model'
-import type { Pitch } from './music.model'
+} from './audio.constants'
+import { noteAt } from './audio.lens'
+import { NOTE_NAMES, OCTAVES } from './audio.model'
+import type { Pitch } from './audio.model'
 
 export const PITCHES_ASCENDING: readonly Pitch[] = OCTAVES.flatMap((octave) =>
   NOTE_NAMES.map((name) => `${name}${octave}` as const)

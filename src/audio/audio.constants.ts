@@ -1,4 +1,4 @@
-export const MUSIC_STATE_STORAGE_KEY = 'music-state'
+export const SOUND_STATE_STORAGE_KEY = 'music-state'
 
 export const A4_HZ = 440
 

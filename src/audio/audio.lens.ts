@@ -1,5 +1,5 @@
 import { prop } from '../util/accessor'
-import type { Note } from './music.model'
+import type { Note } from './audio.model'
 
 const note = prop<Note>()
 
