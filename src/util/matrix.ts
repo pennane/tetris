@@ -1,28 +1,31 @@
-import { GenericMatrix } from '../logic/logic.model'
-import * as R from 'ramda'
+export type Matrix<T> = ReadonlyArray<ReadonlyArray<T>>
 
-export const mergeMatrices = <A, B>(
-  a: GenericMatrix<A>,
-  b: GenericMatrix<B>,
-  bX: number,
-  bY: number,
-  merge: (a: A, b: B) => A
-) => {
-  return a.map((row, rowIndex) =>
-    row.map((cell, columnIndex) => {
-      if (columnIndex >= bX && columnIndex < bX + b.length) {
-        if (rowIndex >= bY && rowIndex < bY + b[0].length) {
-          return merge(cell, R.path([rowIndex - bY, columnIndex - bX], b))
-        }
-      }
-      return cell
+export const cellAt = <T>(m: Matrix<T>, row: number, col: number) =>
+  m[row]?.[col]
+
+const requireCell = <T>(m: Matrix<T>, row: number, col: number) => {
+  const cell = cellAt(m, row, col)
+  if (cell === undefined) throw new RangeError(`No cell at ${row},${col}`)
+  return cell
+}
+
+export const overlay = <A, B, C>(
+  base: Matrix<A>,
+  top: Matrix<B>,
+  row: number,
+  col: number,
+  merge: (base: A, top: B) => C
+) =>
+  base.map((r, y) =>
+    r.map((cell, x) => {
+      const over = cellAt(top, y - row, x - col)
+      return over === undefined ? cell : merge(cell, over)
     })
   )
-}
 
-export const rotate90 = <T>(m: GenericMatrix<T>): GenericMatrix<T> => {
-  const N = m.length - 1
-  return m.map((row, i) => row.map((_, j) => m[N - j][i]))
+export const rotate90 = <T>(m: Matrix<T>) => {
+  const n = m.length - 1
+  return m.map((row, i) => row.map((_, j) => requireCell(m, n - j, i)))
 }
-export const rotate180 = R.pipe(rotate90, rotate90)
-export const rotate270 = R.pipe(rotate90, rotate90, rotate90)
+export const rotate180 = <T>(m: Matrix<T>) => rotate90(rotate90(m))
+export const rotate270 = <T>(m: Matrix<T>) => rotate90(rotate180(m))

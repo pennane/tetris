@@ -6,14 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc"
   },
   "devDependencies": {
-    "@types/ramda": "^0.29.3",
+    "@types/ramda": "^0.32.0",
     "typescript": "^5.0.2",
-    "vite": "^4.4.5"
+    "vite": "^4.4.5",
+    "vitest": "0.34.6"
   },
   "dependencies": {
-    "ramda": "^0.29.0"
+    "ramda": "^0.32.0"
   }
 }

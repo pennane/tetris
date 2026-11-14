@@ -1,16 +1,16 @@
-export const STORAGE_BASE_KEY = 'pennanen-dev-tetris-' as const
+export const STORAGE_BASE_KEY = 'pennanen-dev-tetris-'
 
-export const store = (value: unknown, key: string) => {
-  localStorage.setItem(STORAGE_BASE_KEY.concat(key), JSON.stringify(value))
+export const store = (key: string, value: unknown): void => {
+  try {
+    localStorage.setItem(STORAGE_BASE_KEY + key, JSON.stringify(value))
+  } catch {}
 }
 
-export const load = <T>(key: string, parser: (v: unknown) => T): T => {
+export const load = <T>(key: string, decode: (v: unknown) => T): T => {
   try {
-    const value: unknown = JSON.parse(
-      localStorage.getItem(STORAGE_BASE_KEY.concat(key)) || ''
-    )
-    return parser(value)
+    const raw = localStorage.getItem(STORAGE_BASE_KEY + key)
+    return decode(raw === null ? null : JSON.parse(raw))
   } catch {
-    return parser(null)
+    return decode(null)
   }
 }
