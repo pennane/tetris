@@ -49,7 +49,7 @@ export const makeState = (o: {
 
 export const send = (s: State, ...msgs: Msg[]): Outcome => run(s, msgs)
 
-export const step = (s: State, ...msgs: Msg[]): State => send(s, ...msgs).state
+export const step = (s: State, ...msgs: Msg[]): State => send(s, ...msgs).value
 
 export const pieceOf = (s: State): PieceSpec => ({ ...s.piece })
 

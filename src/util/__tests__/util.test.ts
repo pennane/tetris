@@ -60,9 +60,9 @@ describe('asLongAs', () => {
 
 describe('events', () => {
   type W = WithEvents<number, string>
-  const inc = (n: number): W => ({ state: n + 1, events: [`inc ${n}`] })
-  const dbl = (n: number): W => ({ state: n * 2, events: [`dbl ${n}`] })
-  const m: W = { state: 3, events: ['start'] }
+  const inc = (n: number): W => ({ value: n + 1, events: [`inc ${n}`] })
+  const dbl = (n: number): W => ({ value: n * 2, events: [`dbl ${n}`] })
+  const m: W = { value: 3, events: ['start'] }
 
   it('satisfies the monad identity laws', () => {
     expect(chain(inc)(of(1))).toEqual(inc(1))
@@ -76,11 +76,11 @@ describe('events', () => {
   })
 
   it('maps the state without touching events', () => {
-    expect(map((n: number) => n * 10)(m)).toEqual({ state: 30, events: ['start'] })
+    expect(map((n: number) => n * 10)(m)).toEqual({ value: 30, events: ['start'] })
   })
 
   it('appends emitted events in order', () => {
-    expect(emit('a', 'b')(m)).toEqual({ state: 3, events: ['start', 'a', 'b'] })
+    expect(emit('a', 'b')(m)).toEqual({ value: 3, events: ['start', 'a', 'b'] })
   })
 })
 

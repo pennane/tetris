@@ -235,12 +235,12 @@ describe('replay', () => {
 
   it('folding the log equals stepping one message at a time', () => {
     const msgs = session(3_000)
-    const stepped = msgs.reduce<{ state: State; events: GameEvent[] }>(
+    const stepped = msgs.reduce<{ value: State; events: GameEvent[] }>(
       (acc, msg) => {
-        const o = update(acc.state, msg)
-        return { state: o.state, events: [...acc.events, ...o.events] }
+        const o = update(acc.value, msg)
+        return { value: o.value, events: [...acc.events, ...o.events] }
       },
-      { state: createInitialState(7), events: [] }
+      { value: createInitialState(7), events: [] }
     )
     expect(run(createInitialState(7), msgs)).toEqual(stepped)
   })

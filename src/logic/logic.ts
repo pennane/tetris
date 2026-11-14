@@ -61,13 +61,13 @@ const clearLines: GameStep = (state) => {
   const events: GameEvent[] = []
   if (cleared > 0) events.push({ type: 'linesCleared', count: cleared })
   if (levelAfter > levelBefore) events.push({ type: 'levelUp', level: levelAfter })
-  return { state: next, events }
+  return { value: next, events }
 }
 
 const restartIfToppedOut: GameStep = (state) =>
   isFailState(state)
     ? {
-        state: createInitialState(at.seed.view(state)),
+        value: createInitialState(at.seed.view(state)),
         events: [{ type: 'gameOver', finalScore: at.score.view(state) }]
       }
     : of(state)

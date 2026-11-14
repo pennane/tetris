@@ -66,8 +66,8 @@ const frame = (
   requestAnimationFrame((now) => {
     const clock = ticksDue(lastTick, now)
     const msgs = takeMessages(clock.ticks)
-    const outcome = msgs.length > 0 ? run(state, msgs) : { state, events: [] }
-    frame(outcome.state, outcome.events, clock.last)
+    const outcome = msgs.length > 0 ? run(state, msgs) : { value: state, events: [] }
+    frame(outcome.value, outcome.events, clock.last)
   })
 }
 
