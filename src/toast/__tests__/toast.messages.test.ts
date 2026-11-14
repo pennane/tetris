@@ -24,7 +24,7 @@ describe('toast messages', () => {
     }
   )
 
-  it('stays quiet on game over', () => {
-    expect(toastFor({ type: 'gameOver', finalScore: 10 })).toBeNull()
+  it('announces game over', () => {
+    expect(toastFor({ type: 'gameOver', finalScore: 10 })).toBe('game over')
   })
 })

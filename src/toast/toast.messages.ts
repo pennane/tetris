@@ -22,7 +22,7 @@ const TOASTS: ToastTable = {
   pieceLocked: null,
   linesCleared: (count) => LINE_CLEAR_TOASTS[count] ?? null,
   levelUp: (level) => `level ${level}`,
-  gameOver: null
+  gameOver: 'game over'
 }
 
 export const toastFor = (event: GameEvent): Toast => {
