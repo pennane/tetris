@@ -57,7 +57,7 @@ const octaveUp = transposePitch(12)
 const bassBar = (root: Pitch) =>
   [root, octaveUp(root), root, octaveUp(root)].map(bassNote)
 
-const BASS_ROOTS: readonly Pitch[] = ['E1', 'A1', 'E1', 'A1', 'D1', 'C1', 'E1', 'A1']
+const BASS_ROOTS: readonly Pitch[] = ['E2', 'A2', 'E2', 'A2', 'D2', 'C2', 'E2', 'A2']
 
 const CHORDS: readonly (readonly [Pitch, Pitch, Pitch])[] = [
   ['E4', 'G#4', 'B4'],
