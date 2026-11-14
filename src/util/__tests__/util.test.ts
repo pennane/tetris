@@ -3,7 +3,7 @@ import { compose, prop } from '../accessor'
 import { overlay, rotate90, rotate270 } from '../matrix'
 import { asLongAs } from '../fp'
 import { nextRandom, shuffle } from '../random'
-import { foldK, of, pipeK, tell, type Step } from '../writer'
+import { chain, map, of, tell, type Writer } from '../writer'
 
 type Inner = { n: number; tag: string }
 type Outer = { inner: Inner; other: number }
@@ -59,24 +59,28 @@ describe('asLongAs', () => {
 })
 
 describe('writer', () => {
-  const inc: Step<number, string> = (n) => ({ state: n + 1, events: [`inc ${n}`] })
-  const dbl: Step<number, string> = (n) => ({ state: n * 2, events: [] })
+  type W = Writer<number, string>
+  const inc = (n: number): W => ({ state: n + 1, events: [`inc ${n}`] })
+  const dbl = (n: number): W => ({ state: n * 2, events: [`dbl ${n}`] })
+  const m: W = { state: 3, events: ['start'] }
 
-  it('has of as identity on both sides', () => {
-    expect(pipeK(of, inc)(1)).toEqual(inc(1))
-    expect(pipeK(inc, of)(1)).toEqual(inc(1))
+  it('satisfies the monad identity laws', () => {
+    expect(chain(inc)(of(1))).toEqual(inc(1))
+    expect(chain((n: number) => of<number, string>(n))(m)).toEqual(m)
   })
 
-  it('is associative and accumulates events in order', () => {
-    const left = pipeK(pipeK(inc, dbl), tell<number, string>('done'))
-    const right = pipeK(inc, pipeK(dbl, tell<number, string>('done')))
-    expect(left(3)).toEqual(right(3))
-    expect(left(3)).toEqual({ state: 8, events: ['inc 3', 'done'] })
+  it('satisfies associativity', () => {
+    expect(chain(dbl)(chain(inc)(m))).toEqual(
+      chain((n: number) => chain(dbl)(inc(n)))(m)
+    )
   })
 
-  it('folds a message log through a step function', () => {
-    const add = (n: number, m: number) => ({ state: n + m, events: [m] })
-    expect(foldK(add)(0, [1, 2, 3])).toEqual({ state: 6, events: [1, 2, 3] })
+  it('maps the state without touching events', () => {
+    expect(map((n: number) => n * 10)(m)).toEqual({ state: 30, events: ['start'] })
+  })
+
+  it('appends told events in order', () => {
+    expect(tell('a', 'b')(m)).toEqual({ state: 3, events: ['start', 'a', 'b'] })
   })
 })
 

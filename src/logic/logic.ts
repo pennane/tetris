@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { foldK, lift, of, pipeK, tell } from '../util/writer'
+import { chain, map, of, tell } from '../util/writer'
 import { at } from './logic.lens'
 import {
   clearFullRows,
@@ -72,11 +72,12 @@ const restartIfToppedOut: GameStep = (state) =>
       }
     : of(state)
 
-const lockPiece: GameStep = pipeK<State, GameEvent>(
-  tell({ type: 'pieceLocked' }),
-  clearLines,
-  lift(spawnNext),
-  restartIfToppedOut
+const lockPiece: GameStep = R.pipe(
+  of<State, GameEvent>,
+  tell<GameEvent>({ type: 'pieceLocked' }),
+  chain(clearLines),
+  map(spawnNext),
+  chain(restartIfToppedOut)
 )
 
 const countDown: StateTransformation = (state) =>
@@ -87,9 +88,13 @@ const fall: GameStep = (state) => {
   return shouldPlaceDown(state) ? lockPiece(state) : of(moveDown(state))
 }
 
-const gravity: GameStep = pipeK<State, GameEvent>(lift(countDown), fall)
+const gravity: GameStep = R.pipe(countDown, fall)
 
 export const update = (state: State, msg: Msg): Outcome =>
   msg.type === 'tick' ? gravity(state) : of(handleInput(msg.action)(state))
 
-export const run = foldK(update)
+export const run = (state: State, msgs: readonly Msg[]): Outcome =>
+  msgs.reduce(
+    (outcome, msg) => chain((s: State) => update(s, msg))(outcome),
+    of<State, GameEvent>(state)
+  )
