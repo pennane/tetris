@@ -12,7 +12,6 @@ const requireCell = <T>(m: Matrix<T>, row: number, col: number): T => {
   return cell
 }
 
-/** Lays `top` over `base` with its top-left corner at (row, col). */
 export const overlay = <A, B, C>(
   base: Matrix<A>,
   top: Matrix<B>,
@@ -27,7 +26,6 @@ export const overlay = <A, B, C>(
     })
   )
 
-/** Clockwise. Square matrices only. */
 export const rotate90 = <T>(m: Matrix<T>): Matrix<T> => {
   const n = m.length - 1
   return m.map((row, i) => row.map((_, j) => requireCell(m, n - j, i)))

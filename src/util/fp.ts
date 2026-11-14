@@ -3,7 +3,6 @@ export type NonEmpty<T> = readonly [T, ...T[]]
 export const isNonEmpty = <T>(xs: readonly T[]): xs is NonEmpty<T> =>
   xs.length > 0
 
-/** Applies `fn` while the result still satisfies `pred`; returns the last passing value. */
 export const asLongAs =
   <T>(pred: (val: T) => boolean, fn: (val: T) => T) =>
   (init: T): T => {

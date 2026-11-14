@@ -19,8 +19,8 @@ export type Octave = (typeof OCTAVES)[number]
 export type Pitch = `${NoteName}${Octave}`
 
 export type PlayMode = 'normal' | 'decay' | 'attack' | 'both'
-/** Seconds. */
-export type Duration = number
+export type Seconds = number
+export type Duration = Seconds
 export type Volume = number
 
 export type Note = Readonly<{

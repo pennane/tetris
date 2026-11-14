@@ -23,10 +23,8 @@ export const EMPTY_CELL = 'E'
 export type EmptyCell = typeof EMPTY_CELL
 export type Cell = TetrominoCell | EmptyCell
 
-/** Board as stored: only locked cells. */
 export type Board = Matrix<Cell>
 
-/** Board as drawn: also the falling piece and its landing preview. */
 export type GhostCell = Readonly<{ ghostOf: TetrominoCell }>
 export type RenderCell = Cell | GhostCell
 export type RenderBoard = Matrix<RenderCell>
@@ -45,10 +43,9 @@ export type Piece = Readonly<{
 }>
 
 export type Sequence = NonEmpty<TetrominoCell>
-/** Ticks until the next gravity step. */
-export type NextFall = number
-/** Ticks between gravity steps. */
-export type Speed = number
+export type Ticks = number
+export type NextFall = Ticks
+export type Speed = Ticks
 export type Score = number
 export type LinesCleared = number
 export type Level = number

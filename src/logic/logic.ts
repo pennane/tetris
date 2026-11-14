@@ -75,7 +75,6 @@ const lockPiece = (state: State): Outcome => {
   }
 }
 
-/** One gravity step: counts down, and moves or locks the piece at zero. */
 const gravity = (state: State): Outcome => {
   const ticked = at.nextFall.over((n) => (n > 0 ? n - 1 : speedOf(state)))(
     state
@@ -87,7 +86,6 @@ const gravity = (state: State): Outcome => {
 const isTick = (timestamp: Timestamp, state: State) =>
   timestamp - at.lastTick.view(state) > EXECUTE_INTERVAL_MS
 
-/** Input applies every frame; gravity only on ticks, independent of frame rate. */
 export const nextState = (
   state: State,
   action: Action | null,

@@ -15,7 +15,6 @@ import type {
 export const SAVE_STORAGE_KEY = 'persisted-game-state'
 const SAVE_VERSION = 2
 
-/** Persisted shape: sources of truth only. Bump SAVE_VERSION on change. */
 export type Save = Readonly<{
   version: typeof SAVE_VERSION
   board: Board
@@ -90,7 +89,6 @@ const piece: Decoder<Piece> = (v) => {
   return { type, col, row, rotation: rot }
 }
 
-/** Returns null for anything that isn't a playable current-version save. */
 export const fromSave: Decoder<State> = (v) => {
   if (!isRecord(v) || v['version'] !== SAVE_VERSION) return null
   const b = board(v['board'])

@@ -90,9 +90,10 @@ export const dropToBottom: StateTransformation = asLongAs(
 const addDropScore: StateTransformation = (state) =>
   at.score.over(R.add(INSTANT_DROP_SCORE[at.pieceType.view(state)]))(state)
 
-/** Lock is deferred to the next tick so the piece can still slide. */
+const lockOnNextTick = at.nextFall.set(1)
+
 export const instantDrop: StateTransformation = R.pipe(
-  at.nextFall.set(1),
+  lockOnNextTick,
   dropToBottom,
   addDropScore
 )
@@ -146,7 +147,6 @@ export const createSequence = (random: Random = Math.random): Sequence => {
   return isNonEmpty(bag) ? bag : TETROMINOES
 }
 
-/** Pops the next piece, refilling the bag so a preview always exists. */
 export const spawnNext =
   (random: Random = Math.random): StateTransformation =>
   (state) => {

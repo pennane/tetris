@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { EXECUTE_INTERVAL_MS } from '../logic.constants'
 import { Action, TetrominoCell as T } from '../logic.model'
 import {
   advance,
@@ -12,24 +13,22 @@ import {
   step
 } from './harness'
 
-// Timestamps: the harness state starts with its last tick at 0.
-// A frame at ts > 16ms after the last tick is a tick; anything closer is not.
-const TICK = 20
-const NO_TICK = 5
+const TICK = EXECUTE_INTERVAL_MS + 1
+const WITHIN_TICK = 1
 
 describe('input', () => {
   it('moves left, right and down', () => {
     const s = makeState({ piece: { type: T.T, col: 4, row: 5, rotation: 0 } })
-    expect(pieceOf(step(s, Action.LEFT, NO_TICK)).col).toBe(3)
-    expect(pieceOf(step(s, Action.RIGHT, NO_TICK)).col).toBe(5)
-    expect(pieceOf(step(s, Action.DOWN, NO_TICK)).row).toBe(6)
+    expect(pieceOf(step(s, Action.LEFT, WITHIN_TICK)).col).toBe(3)
+    expect(pieceOf(step(s, Action.RIGHT, WITHIN_TICK)).col).toBe(5)
+    expect(pieceOf(step(s, Action.DOWN, WITHIN_TICK)).row).toBe(6)
   })
 
   it('rotates through all four rotations', () => {
     let s = makeState({ piece: { type: T.T, col: 4, row: 5, rotation: 0 } })
     const seen: number[] = []
     for (let i = 0; i < 4; i++) {
-      s = step(s, Action.ROTATE, NO_TICK)
+      s = step(s, Action.ROTATE, WITHIN_TICK)
       seen.push(pieceOf(s).rotation)
     }
     expect(seen).toEqual([1, 2, 3, 0])
@@ -37,25 +36,22 @@ describe('input', () => {
 
   it('rejects moves into walls', () => {
     const s = makeState({ piece: { type: T.O, col: 0, row: 5, rotation: 0 } })
-    expect(pieceOf(step(s, Action.LEFT, NO_TICK)).col).toBe(0)
+    expect(pieceOf(step(s, Action.LEFT, WITHIN_TICK)).col).toBe(0)
     const r = makeState({ piece: { type: T.O, col: 8, row: 5, rotation: 0 } })
-    expect(pieceOf(step(r, Action.RIGHT, NO_TICK)).col).toBe(8)
+    expect(pieceOf(step(r, Action.RIGHT, WITHIN_TICK)).col).toBe(8)
   })
 
   it('rejects moves into locked cells', () => {
-    // O at cols 4-5, rows 17-18; a block sits directly left of it.
     const s = makeState({
       piece: { type: T.O, col: 4, row: 17, rotation: 0 },
       board: ['...Z......', '..........']
     })
-    expect(pieceOf(step(s, Action.LEFT, NO_TICK)).col).toBe(4)
+    expect(pieceOf(step(s, Action.LEFT, WITHIN_TICK)).col).toBe(4)
   })
 
   it('rejects a rotation that would collide', () => {
-    // Horizontal I on row 19 (matrix row 1). Rotating makes it vertical in
-    // matrix column 2, which would extend below the board.
     const s = makeState({ piece: { type: T.I, col: 3, row: 18, rotation: 0 } })
-    expect(pieceOf(step(s, Action.ROTATE, NO_TICK)).rotation).toBe(0)
+    expect(pieceOf(step(s, Action.ROTATE, WITHIN_TICK)).rotation).toBe(0)
   })
 })
 
@@ -65,7 +61,7 @@ describe('gravity', () => {
       piece: { type: T.T, col: 4, row: 5, rotation: 0 },
       nextFall: 5
     })
-    expect(nextFallOf(step(s, null, NO_TICK))).toBe(5)
+    expect(nextFallOf(step(s, null, WITHIN_TICK))).toBe(5)
     expect(nextFallOf(step(s, null, TICK))).toBe(4)
   })
 
@@ -78,7 +74,7 @@ describe('gravity', () => {
     expect(pieceOf(fell).row).toBe(6)
     const reset = step(fell, null, 2 * TICK)
     expect(pieceOf(reset).row).toBe(6)
-    expect(nextFallOf(reset)).toBe(61) // level 1 speed
+    expect(nextFallOf(reset)).toBe(61)
   })
 
   it('falls once per tick, not once per frame', () => {
@@ -87,7 +83,7 @@ describe('gravity', () => {
       nextFall: 1
     })
     const fell = step(s, null, TICK)
-    expect(pieceOf(step(fell, null, TICK + NO_TICK)).row).toBe(6)
+    expect(pieceOf(step(fell, null, TICK + WITHIN_TICK)).row).toBe(6)
   })
 })
 
@@ -144,7 +140,7 @@ describe('locking', () => {
       piece: { type: T.O, col: 0, row: 0, rotation: 0 },
       sequence: [T.L, T.J]
     })
-    const dropped = step(s, Action.JUMP, NO_TICK)
+    const dropped = step(s, Action.JUMP, WITHIN_TICK)
     expect(pieceOf(dropped).row).toBe(18)
     expect(scoreOf(dropped)).toBe(4)
     expect(nextFallOf(dropped)).toBe(1)
@@ -188,7 +184,7 @@ describe('locking', () => {
       nextFall: 1
     })
     const locked = step(s, null, TICK)
-    expect(scoreOf(locked)).toBe(200) // 100 for a double * level 2
+    expect(scoreOf(locked)).toBe(100 * 2)
     expect(linesOf(locked)).toBe(12)
   })
 

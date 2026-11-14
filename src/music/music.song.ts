@@ -80,8 +80,7 @@ export const SOUNDTRACK: readonly Note[] = MELODY.map(
 
 type NoteTransformer = (n: Note) => Note
 
-/** Cumulative: every entry at or below the current level applies, in order. */
-const LEVEL_NOTE_TRANSFORMERS: ReadonlyArray<readonly [Level, NoteTransformer]> = [
+const NOTE_TRANSFORMERS_FROM_LEVEL: ReadonlyArray<readonly [Level, NoteTransformer]> = [
   [2, noteAt.volume.over(R.multiply(1.1))],
   [3, R.pipe(noteAt.volume.over(R.multiply(1.2)), noteAt.waveform.set('square'))],
   [5, R.pipe(noteAt.volume.over(R.add(0.1)), noteAt.waveform.set('sine'))],
@@ -96,6 +95,6 @@ const LEVEL_NOTE_TRANSFORMERS: ReadonlyArray<readonly [Level, NoteTransformer]> 
 ]
 
 export const noteTransformerFor = (level: Level): NoteTransformer =>
-  LEVEL_NOTE_TRANSFORMERS.filter(([from]) => level >= from)
+  NOTE_TRANSFORMERS_FROM_LEVEL.filter(([from]) => level >= from)
     .map(([, transform]) => transform)
     .reduce<NoteTransformer>((acc, f) => (n) => f(acc(n)), R.identity)

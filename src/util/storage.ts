@@ -6,7 +6,6 @@ export const store = (key: string, value: unknown): void => {
   } catch {}
 }
 
-/** `decode` receives `null` when the key is missing or unreadable. */
 export const load = <T>(key: string, decode: (v: unknown) => T): T => {
   try {
     const raw = localStorage.getItem(STORAGE_BASE_KEY + key)

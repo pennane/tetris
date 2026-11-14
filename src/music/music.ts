@@ -8,7 +8,7 @@ import { noteAt } from './music.lens'
 import {
   createDistortionCurve,
   hz,
-  levelToMusicSpeedMultiplier
+  levelToDurationMultiplier
 } from './music.lib'
 import type { Note } from './music.model'
 import { SOUNDTRACK, noteTransformerFor } from './music.song'
@@ -68,13 +68,12 @@ const playNote = (note: Note, start: number): OscillatorNode => {
   return oscillator
 }
 
-/** Re-reads the level each loop so tempo and timbre follow the game. */
 const playLoop = (notes: readonly Note[], getLevel: () => Level) => {
   const level = getLevel()
-  const speed = levelToMusicSpeedMultiplier(level)
+  const durationMultiplier = levelToDurationMultiplier(level)
   const arranged = notes
     .map(noteTransformerFor(level))
-    .map(noteAt.duration.over((d) => d * speed))
+    .map(noteAt.duration.over((d) => d * durationMultiplier))
 
   let time = audioContext.currentTime
   let last: OscillatorNode | null = null

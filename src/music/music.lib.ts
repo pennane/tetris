@@ -1,34 +1,45 @@
 import { MAX_LEVEL, MIN_LEVEL } from '../logic/logic.constants'
 import type { Level } from '../logic/logic.model'
 import { clamp, mapToNewRange } from '../util/fp'
-import { A4_HZ, FASTEST_MUSIC, SLOWEST_MUSIC } from './music.constants'
+import {
+  A4_HZ,
+  DURATION_MULTIPLIER_AT_MAX_LEVEL,
+  DURATION_MULTIPLIER_AT_MIN_LEVEL
+} from './music.constants'
 import { noteAt } from './music.lens'
 import { NOTE_NAMES, OCTAVES } from './music.model'
 import type { Pitch } from './music.model'
 
-/** Every representable pitch, ascending by semitone. */
-export const PITCHES: readonly Pitch[] = OCTAVES.flatMap((octave) =>
+export const PITCHES_ASCENDING: readonly Pitch[] = OCTAVES.flatMap((octave) =>
   NOTE_NAMES.map((name) => `${name}${octave}` as const)
 )
 
-const A4_INDEX = PITCHES.indexOf('A4')
+const A4_INDEX = PITCHES_ASCENDING.indexOf('A4')
 
-export const semitoneOf = (pitch: Pitch): number => PITCHES.indexOf(pitch)
+export const semitoneOf = (pitch: Pitch): number =>
+  PITCHES_ASCENDING.indexOf(pitch)
 
 export const hz = (pitch: Pitch): number =>
   A4_HZ * 2 ** ((semitoneOf(pitch) - A4_INDEX) / 12)
 
-/** Shifts by `steps` semitones, clamped to the representable range. */
 export const transposePitch =
   (steps: number) =>
   (pitch: Pitch): Pitch =>
-    PITCHES[clamp(0, PITCHES.length - 1, semitoneOf(pitch) + steps)] ?? pitch
+    PITCHES_ASCENDING[
+      clamp(0, PITCHES_ASCENDING.length - 1, semitoneOf(pitch) + steps)
+    ] ?? pitch
 
 export const transpose = (steps: number) =>
   noteAt.pitch.over(transposePitch(steps))
 
-export const levelToMusicSpeedMultiplier = (level: Level) =>
-  mapToNewRange(level, MIN_LEVEL, MAX_LEVEL, SLOWEST_MUSIC, FASTEST_MUSIC)
+export const levelToDurationMultiplier = (level: Level) =>
+  mapToNewRange(
+    level,
+    MIN_LEVEL,
+    MAX_LEVEL,
+    DURATION_MULTIPLIER_AT_MIN_LEVEL,
+    DURATION_MULTIPLIER_AT_MAX_LEVEL
+  )
 
 export const createDistortionCurve = (amount = 50) => {
   const samples = 44100

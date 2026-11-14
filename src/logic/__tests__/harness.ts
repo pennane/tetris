@@ -1,4 +1,3 @@
-// Only file that knows the State shape, so refactors don't touch tests.
 import { BOARD_HEIGHT } from '../logic.constants'
 import { EMPTY_CELL, TetrominoCell } from '../logic.model'
 import type {
@@ -22,7 +21,6 @@ export type PieceSpec = {
 const toCell = (c: string): Cell =>
   c === '.' ? EMPTY_CELL : (c as TetrominoCell)
 
-/** Bottom-aligned rows; '.' is empty, letters are locked cells. */
 export const boardFrom = (bottomRows: string[] = []): Board => {
   const empty = '.'.repeat(10)
   const rows = [
