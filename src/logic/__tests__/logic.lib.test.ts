@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { createInitialState, renderBoard } from './logic.lib'
-import { TetrominoCell as T } from './logic.model'
-import { makeState } from '../test/harness'
+import { createInitialState, renderBoard } from '../logic.lib'
+import { TetrominoCell as T } from '../logic.model'
+import { makeState } from './harness'
 
 describe('renderBoard', () => {
   it('draws the piece over its ghost at the landing row', () => {

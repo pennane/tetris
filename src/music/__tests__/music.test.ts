@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { hz, transposePitch } from './music.lib'
-import { noteTransformerFor } from './music.song'
-import type { Note } from './music.model'
+import { hz, transposePitch } from '../music.lib'
+import { noteTransformerFor } from '../music.song'
+import type { Note } from '../music.model'
 
 describe('pitch', () => {
   it('tunes A4 to 440 and octaves by doubling', () => {

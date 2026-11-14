@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { compose, prop } from './accessor'
-import { overlay, rotate90, rotate270 } from './matrix'
-import { asLongAs } from './fp'
+import { compose, prop } from '../accessor'
+import { overlay, rotate90, rotate270 } from '../matrix'
+import { asLongAs } from '../fp'
 
 type Inner = { n: number; tag: string }
 type Outer = { inner: Inner; other: number }

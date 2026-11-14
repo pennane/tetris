@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Action, TetrominoCell as T } from './logic.model'
+import { Action, TetrominoCell as T } from '../logic.model'
 import {
   advance,
   boardRows,
@@ -10,7 +10,7 @@ import {
   scoreOf,
   sequenceOf,
   step
-} from '../test/harness'
+} from './harness'
 
 // Timestamps: the harness state starts with its last tick at 0.
 // A frame at ts > 16ms after the last tick is a tick; anything closer is not.

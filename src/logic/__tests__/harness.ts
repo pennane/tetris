@@ -1,6 +1,6 @@
 // Only file that knows the State shape, so refactors don't touch tests.
-import { BOARD_HEIGHT } from '../logic/logic.constants'
-import { EMPTY_CELL, TetrominoCell } from '../logic/logic.model'
+import { BOARD_HEIGHT } from '../logic.constants'
+import { EMPTY_CELL, TetrominoCell } from '../logic.model'
 import type {
   Action,
   Board,
@@ -9,8 +9,8 @@ import type {
   Rotation,
   Sequence,
   State
-} from '../logic/logic.model'
-import { nextState } from '../logic/logic'
+} from '../logic.model'
+import { nextState } from '../logic'
 
 export type PieceSpec = {
   type: TetrominoCell

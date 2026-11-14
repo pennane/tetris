@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { createInitialState } from './logic.lib'
-import { fromSave, toSave } from './logic.persist'
-import { TetrominoCell as T } from './logic.model'
-import { makeState } from '../test/harness'
+import { createInitialState } from '../logic.lib'
+import { fromSave, toSave } from '../logic.persist'
+import { TetrominoCell as T } from '../logic.model'
+import { makeState } from './harness'
 
 const roundTrip = (v: unknown) => fromSave(JSON.parse(JSON.stringify(v)))
 
