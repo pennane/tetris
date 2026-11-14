@@ -21,7 +21,7 @@ export const chain =
     return { state: next.state, events: concat(w.events, next.events) }
   }
 
-export const tell =
+export const emit =
   <W>(...events: W[]) =>
   <S>(w: Writer<S, W>): Writer<S, W> => ({
     state: w.state,

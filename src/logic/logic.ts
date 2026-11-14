@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { chain, map, of, tell } from '../util/writer'
+import { chain, emit, map, of } from '../util/writer'
 import { at } from './logic.lens'
 import {
   clearFullRows,
@@ -74,7 +74,7 @@ const restartIfToppedOut: GameStep = (state) =>
 
 const lockPiece: GameStep = R.pipe(
   of<State, GameEvent>,
-  tell<GameEvent>({ type: 'pieceLocked' }),
+  emit<GameEvent>({ type: 'pieceLocked' }),
   chain(clearLines),
   map(spawnNext),
   chain(restartIfToppedOut)

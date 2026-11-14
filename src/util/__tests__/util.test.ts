@@ -3,7 +3,7 @@ import { compose, prop } from '../accessor'
 import { overlay, rotate90, rotate270 } from '../matrix'
 import { asLongAs } from '../fp'
 import { nextRandom, shuffle } from '../random'
-import { chain, map, of, tell, type Writer } from '../writer'
+import { chain, emit, map, of, type Writer } from '../writer'
 
 type Inner = { n: number; tag: string }
 type Outer = { inner: Inner; other: number }
@@ -79,8 +79,8 @@ describe('writer', () => {
     expect(map((n: number) => n * 10)(m)).toEqual({ state: 30, events: ['start'] })
   })
 
-  it('appends told events in order', () => {
-    expect(tell('a', 'b')(m)).toEqual({ state: 3, events: ['start', 'a', 'b'] })
+  it('appends emitted events in order', () => {
+    expect(emit('a', 'b')(m)).toEqual({ state: 3, events: ['start', 'a', 'b'] })
   })
 })
 
