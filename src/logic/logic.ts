@@ -24,6 +24,7 @@ import {
 import { Action } from './logic.model'
 import type {
   GameEvent,
+  GameStep,
   Msg,
   Outcome,
   State,
@@ -40,18 +41,22 @@ const hasResetsLeft = R.pipe(at.lockResets.view, R.gt(MAX_LOCK_RESETS))
 const canResetLock = R.both(isGrounded, hasResetsLeft)
 const resetLock = R.pipe(restartLockDelay, at.lockResets.over(R.inc))
 
-const attempt = (move: StateTransformation) =>
-  R.when(R.pipe(move, isValidState), move)
+const attempt = (move: StateTransformation, ...events: GameEvent[]) =>
+  R.ifElse(
+    R.pipe(move, isValidState),
+    R.pipe(move, quiet, emit(...events)),
+    quiet
+  )
 
-const adjust = (move: StateTransformation) =>
-  attempt(R.pipe(R.when(canResetLock, resetLock), move))
+const adjust = (move: StateTransformation, ...events: GameEvent[]) =>
+  attempt(R.pipe(R.when(canResetLock, resetLock), move), ...events)
 
-const MOVES: Readonly<Record<Action, StateTransformation>> = {
-  [Action.ROTATE]: adjust(rotate),
-  [Action.LEFT]: adjust(moveLeft),
-  [Action.RIGHT]: adjust(moveRight),
+const MOVES: Readonly<Record<Action, GameStep>> = {
+  [Action.ROTATE]: adjust(rotate, { type: 'rotated' }),
+  [Action.LEFT]: adjust(moveLeft, { type: 'moved' }),
+  [Action.RIGHT]: adjust(moveRight, { type: 'moved' }),
   [Action.DOWN]: attempt(moveDown),
-  [Action.JUMP]: attempt(instantDrop)
+  [Action.JUMP]: attempt(instantDrop, { type: 'hardDropped' })
 }
 
 const clearLines = (state: State): Outcome => {
@@ -110,7 +115,7 @@ const reachLowest = R.pipe(markLowest, at.lockResets.set(0), restartLockDelay)
 const trackLowest = R.when(isBelowLowest, reachLowest)
 
 const respond = (msg: Msg) =>
-  msg.type === 'tick' ? gravity : R.pipe(MOVES[msg.action], quiet)
+  msg.type === 'tick' ? gravity : MOVES[msg.action]
 
 export const update = (msg: Msg) => R.pipe(respond(msg), map(trackLowest))
 

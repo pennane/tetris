@@ -72,6 +72,9 @@ export type State = Readonly<{
 }>
 
 export type GameEvent =
+  | Readonly<{ type: 'moved' }>
+  | Readonly<{ type: 'rotated' }>
+  | Readonly<{ type: 'hardDropped' }>
   | Readonly<{ type: 'pieceLocked' }>
   | Readonly<{ type: 'linesCleared'; count: number }>
   | Readonly<{ type: 'levelUp'; level: Level }>

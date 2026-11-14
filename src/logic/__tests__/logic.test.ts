@@ -4,7 +4,7 @@ import { TICK, input, run, update } from '../logic'
 import { LOCK_DELAY_TICKS, MAX_LOCK_RESETS } from '../logic.constants'
 import { createInitialState } from '../logic.lib'
 import { Action, TetrominoCell as T } from '../logic.model'
-import type { GameEvent, Msg, State } from '../logic.model'
+import type { GameEvent, Msg, Outcome, State } from '../logic.model'
 import {
   send,
   boardRows,
@@ -57,6 +57,35 @@ describe('input', () => {
   })
 })
 
+describe('input events', () => {
+  const eventTypes = (o: Outcome) => o.events.map(R.prop('type'))
+  const free = makeState({ piece: { type: T.T, col: 4, row: 5, rotation: 0 } })
+
+  it('emits moved for successful left and right moves', () => {
+    expect(eventTypes(send(free, input(Action.LEFT)))).toEqual(['moved'])
+    expect(eventTypes(send(free, input(Action.RIGHT)))).toEqual(['moved'])
+  })
+
+  it('emits rotated for a successful rotation', () => {
+    expect(eventTypes(send(free, input(Action.ROTATE)))).toEqual(['rotated'])
+  })
+
+  it('emits hardDropped for a jump', () => {
+    expect(eventTypes(send(free, input(Action.JUMP)))).toEqual(['hardDropped'])
+  })
+
+  it('stays silent on soft drop', () => {
+    expect(eventTypes(send(free, input(Action.DOWN)))).toEqual([])
+  })
+
+  it('stays silent when a move or rotation is blocked', () => {
+    const wall = makeState({ piece: { type: T.O, col: 0, row: 5, rotation: 0 } })
+    expect(eventTypes(send(wall, input(Action.LEFT)))).toEqual([])
+    const floor = makeState({ piece: { type: T.I, col: 3, row: 18, rotation: 0 } })
+    expect(eventTypes(send(floor, input(Action.ROTATE)))).toEqual([])
+  })
+})
+
 describe('gravity', () => {
   it('advances the fall timer on ticks only', () => {
     const s = makeState({
@@ -88,10 +117,10 @@ describe('events', () => {
       ...o
     })
 
-  it('emits nothing on ordinary frames', () => {
-    expect(send(lockable({ nextFall: 5 }), input(Action.LEFT), TICK).events).toEqual(
-      []
-    )
+  it('emits only the move on an ordinary frame', () => {
+    expect(send(lockable({ nextFall: 5 }), input(Action.LEFT), TICK).events).toEqual([
+      { type: 'moved' }
+    ])
   })
 
   it('emits pieceLocked on lock', () => {
