@@ -2,6 +2,7 @@ import {
   ATTACK_SECONDS,
   EFFECTS_BUS_GAIN,
   MUSIC_BUS_GAIN,
+  NOISE_DECAY_SECONDS,
   NOISE_SECONDS,
   PEAK_GAIN,
   PULSE_DUTY,
@@ -113,11 +114,15 @@ const scheduleEnvelope = (
   }
 }
 
-const noiseSource = () => {
+const noiseSource = (note: Note) => {
   const source = audioContext.createBufferSource()
   source.buffer = noiseBuffer
   source.loop = true
-  return source
+  const highpass = audioContext.createBiquadFilter()
+  highpass.type = 'highpass'
+  highpass.frequency.value = hz(note.pitch)
+  source.connect(highpass)
+  return { source, output: highpass }
 }
 
 const oscillatorFor = (note: Note) => {
@@ -128,8 +133,16 @@ const oscillatorFor = (note: Note) => {
   return oscillator
 }
 
+const toneSource = (note: Note) => {
+  const source = oscillatorFor(note)
+  return { source, output: source }
+}
+
 const sourceFor = (note: Note) =>
-  note.instrument === 'noise' ? noiseSource() : oscillatorFor(note)
+  note.instrument === 'noise' ? noiseSource(note) : toneSource(note)
+
+const soundingSeconds = (note: Note, duration: Seconds) =>
+  note.instrument === 'noise' ? Math.min(duration, NOISE_DECAY_SECONDS) : duration
 
 export const play = (
   note: Note,
@@ -137,12 +150,13 @@ export const play = (
   duration: Seconds,
   destination: AudioNode
 ) => {
-  const source = sourceFor(note)
+  const { source, output } = sourceFor(note)
+  const sounding = soundingSeconds(note, duration)
   const volume = audioContext.createGain()
-  scheduleEnvelope(volume.gain, note, start, duration)
-  source.connect(volume)
+  scheduleEnvelope(volume.gain, note, start, sounding)
+  output.connect(volume)
   volume.connect(destination)
   source.start(start)
-  source.stop(start + duration)
+  source.stop(start + sounding)
   return source
 }

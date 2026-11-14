@@ -89,8 +89,8 @@ const percussion =
   })
 
 const KICK = percussion('triangle', 'A1', KICK_VOLUME)
-const SNARE = percussion('noise', 'C4', SNARE_VOLUME)
-const HAT = percussion('noise', 'C4', HAT_VOLUME)
+const SNARE = percussion('noise', 'C6', SNARE_VOLUME)
+const HAT = percussion('noise', 'C8', HAT_VOLUME)
 
 const HAT_BAR: readonly NoteOrRest[] = [_, HAT, _, HAT, _, HAT, _, HAT]
 const DRUM_BAR: readonly NoteOrRest[] = [KICK, _, SNARE, _, KICK, _, SNARE, _]
@@ -194,8 +194,7 @@ export const driveFor = valueAt(DRIVE_BY_LEVEL)
 
 export const DRIVEN_GAIN_BY_LEVEL: LevelCurve = [
   [4, 1],
-  [5, 0.5],
-  [8, 1]
+  [5, 0.35]
 ]
 
 export const drivenGainFor = valueAt(DRIVEN_GAIN_BY_LEVEL)
