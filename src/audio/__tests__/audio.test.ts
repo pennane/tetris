@@ -51,17 +51,11 @@ describe('pitch', () => {
 })
 
 describe('melody arrangement', () => {
-  const melodyNote: Note = {
-    pitch: 'E3',
-    length: 1,
-    volume: 1,
-    mode: 'decay',
-    instrument: 'pulse'
-  }
+  const [melodyNote] = LEAD.notes.filter(R.isNotNil)
 
   it('keeps the pulse wave through the clean levels', () => {
     R.range(MIN_LEVEL, cleanLevelsEnd + 1).forEach((level) =>
-      expect(LEAD.arrangeFor(level)(melodyNote).instrument).toBe('pulse')
+      expect(melodyNote && LEAD.arrangeFor(level)(melodyNote).instrument).toBe('pulse')
     )
   })
 
@@ -79,11 +73,11 @@ describe('melody arrangement', () => {
   it.each(legacy.filter(([level]) => level > cleanLevelsEnd))(
     'matches the legacy arrangement at level %i',
     (level, pitch, volume, mode, instrument) => {
-      const n = LEAD.arrangeFor(level)(melodyNote)
-      expect(n.pitch).toBe(pitch)
-      expect(n.volume).toBeCloseTo(volume)
-      expect(n.mode).toBe(mode)
-      expect(n.instrument).toBe(instrument)
+      const n = melodyNote && LEAD.arrangeFor(level)(melodyNote)
+      expect(n?.pitch).toBe(pitch)
+      expect(n?.volume).toBeCloseTo(volume)
+      expect(n?.mode).toBe(mode)
+      expect(n?.instrument).toBe(instrument)
     }
   )
 })
@@ -167,6 +161,20 @@ describe('harmony', () => {
     (level) => {
       [BASS, ARPEGGIO].forEach((track) =>
         expect(R.mathMod(offsetOf(LEAD, level) - offsetOf(track, level), 12)).toBe(0)
+      )
+    }
+  )
+})
+
+describe('register', () => {
+  const pitchesOf = (track: Track, level: number) =>
+    track.notes.filter(R.isNotNil).map(R.pipe(track.arrangeFor(level), R.prop('pitch'), semitoneOf))
+
+  it.each(R.range(MIN_LEVEL, cleanLevelsEnd + 1))(
+    'keeps the lead above the bass at clean level %i',
+    (level) => {
+      expect(Math.min(...pitchesOf(LEAD, level))).toBeGreaterThanOrEqual(
+        Math.max(...pitchesOf(BASS, level))
       )
     }
   )

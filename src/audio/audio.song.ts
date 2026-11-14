@@ -117,6 +117,7 @@ const MELODY_FROM_LEVEL: LevelChanges = [
   [2, noteAt.volume.over(R.multiply(1.1))],
   [3, noteAt.volume.over(R.multiply(1.2))],
   [5, noteAt.volume.over(R.add(0.1))],
+  [6, transpose(-12)],
   [6, noteAt.instrument.set('sawtooth')],
   [8, noteAt.mode.set('decay')],
   [9, noteAt.volume.over(R.add(0.1))],
@@ -138,7 +139,7 @@ const keyFor = changesUpTo(KEY_FROM_LEVEL)
 const melodyArrangementFor = (level: Level) =>
   R.pipe(keyFor(level), changesUpTo(MELODY_FROM_LEVEL)(level))
 
-const leadVoice = R.pipe(transpose(-24), noteAt.mode.set('decay'))
+const leadVoice = R.pipe(transpose(-12), noteAt.mode.set('decay'))
 
 const voiceLead = (n: NoteOrRest) => n && leadVoice(n)
 

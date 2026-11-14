@@ -12,7 +12,7 @@ const voice =
 const tick = voice('pulse', 0.25, 1)
 const chirp = voice('pulse', 0.25, 1)
 const thud = voice('noise', 0.5, 3)
-const thunk = voice('triangle', 0.6, 3)
+const thunk = voice('triangle', 1, 3)
 const sparkle = voice('pulse', 0.4, 2)
 const fanfare = voice('pulse', 0.4, 3)
 const fall = voice('pulse', 0.4, 4)
@@ -31,7 +31,7 @@ const CUES: CueTable = {
   moved: [tick('C6')],
   rotated: phrase(chirp, 'E6', 'A6'),
   hardDropped: [thud('C4')],
-  pieceLocked: [thunk('C3')],
+  pieceLocked: [thunk('G4')],
   linesCleared: (count) => LINE_CLEAR_ARPEGGIO.slice(0, count + 1).map(sparkle),
   levelUp: phrase(fanfare, 'C6', 'E6', 'G6', 'C7'),
   gameOver: [...phrase(fall, 'E5', 'D5', 'C5', 'B4', 'A4', 'G#4'), toll('A3')]
