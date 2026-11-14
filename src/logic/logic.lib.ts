@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import { asLongAs, isNonEmpty } from '../util/fp'
-import { cellAt, overlay } from '../util/matrix'
-import { shuffle, type Seed, type WithSeed } from '../util/random'
+import { cellAt, overlay, type Matrix } from '../util/matrix'
+import { shuffle, type Seed } from '../util/random'
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
@@ -22,42 +22,36 @@ import { EMPTY_CELL } from './logic.model'
 import type {
   Board,
   Cell,
+  GhostCell,
   Level,
   LinesCleared,
   Piece,
-  RenderBoard,
-  RenderCell,
   Rotation,
   Score,
-  Sequence,
-  Shape,
-  Speed,
   State,
-  StatePredicate,
-  StateTransformation,
   TetrominoCell
 } from './logic.model'
 
-export const shapeOf = (piece: Piece): Shape =>
-  SHAPES[piece.rotation][piece.type]
+export const shapeOf = (piece: Piece) => SHAPES[piece.rotation][piece.type]
 
-export const linesClearedToLevel = (linesCleared: LinesCleared): Level =>
+export const linesClearedToLevel = (linesCleared: LinesCleared) =>
   Math.min(
     Math.floor(linesCleared / LINES_CLEARED_PER_LEVEL) + MIN_LEVEL,
     MAX_LEVEL
   )
 
-export const levelToSpeed = (level: Level): Speed =>
+export const levelToSpeed = (level: Level) =>
   Math.round(
     Math.max(DEFAULT_SPEED - level * SPEED_INCREASE_PER_LEVEL, MAX_SPEED)
   )
 
-export const levelOf = (state: State): Level =>
-  linesClearedToLevel(at.linesCleared.view(state))
+export const levelOf = R.pipe(at.linesCleared.view, linesClearedToLevel)
+export const speedOf = R.pipe(levelOf, levelToSpeed)
 
-export const speedOf = (state: State): Speed => levelToSpeed(levelOf(state))
+const isLocked = R.complement(R.equals<Cell>(EMPTY_CELL))
+const hasGap = R.includes<Cell>(EMPTY_CELL)
 
-export const fits = (board: Board, piece: Piece): boolean =>
+export const fits = (board: Board, piece: Piece) =>
   shapeOf(piece).every((row, y) =>
     row.every(
       (solid, x) =>
@@ -65,74 +59,68 @@ export const fits = (board: Board, piece: Piece): boolean =>
     )
   )
 
-export const isValidState: StatePredicate = (state) =>
+export const isValidState = (state: State) =>
   fits(at.board.view(state), at.piece.view(state))
 
-export const isFailState: StatePredicate = (state) =>
-  at.board.view(state)[0]?.some((cell) => cell !== EMPTY_CELL) ?? false
+export const isFailState = (state: State) =>
+  at.board.view(state)[0]?.some(isLocked) ?? false
 
-const nextRotation = (r: Rotation): Rotation => ((r + 1) % 4) as Rotation
+const nextRotation = (r: Rotation) => ((r + 1) % 4) as Rotation
 
 export const rotate = at.pieceRotation.over(nextRotation)
 export const moveDown = at.pieceRow.over(R.inc)
 export const moveLeft = at.pieceCol.over(R.dec)
 export const moveRight = at.pieceCol.over(R.inc)
 
-export const shouldPlaceDown: StatePredicate = R.complement(
-  R.pipe(moveDown, isValidState)
-)
+export const shouldPlaceDown = R.complement(R.pipe(moveDown, isValidState))
 
-export const dropToBottom: StateTransformation = asLongAs(
-  isValidState,
-  moveDown
-)
+export const dropToBottom = asLongAs(isValidState, moveDown)
 
-const addDropScore: StateTransformation = (state) =>
-  at.score.over(R.add(INSTANT_DROP_SCORE[at.pieceType.view(state)]))(state)
+export const addScore = (points: Score) => at.score.over(R.add(points))
+
+const dropScoreOf = R.pipe(at.pieceType.view, R.prop(R.__, INSTANT_DROP_SCORE))
+
+const addDropScore = (state: State) => addScore(dropScoreOf(state))(state)
 
 const lockOnNextTick = at.nextFall.set(1)
 
-export const instantDrop: StateTransformation = R.pipe(
-  lockOnNextTick,
-  dropToBottom,
-  addDropScore
-)
+export const instantDrop = R.pipe(lockOnNextTick, dropToBottom, addDropScore)
 
-export const mergePiece = (board: Board, piece: Piece): Board =>
+const overlayPiece = <A, C>(
+  board: Matrix<A>,
+  piece: Piece,
+  paint: (piece: Piece) => C
+) =>
   overlay(board, shapeOf(piece), piece.row, piece.col, (cell, solid) =>
-    solid ? piece.type : cell
+    solid ? paint(piece) : cell
   )
 
-export const renderBoard = (state: State): RenderBoard => {
-  const piece = at.piece.view(state)
-  const ghost = at.piece.view(dropToBottom(state))
-  const withGhost = overlay(
-    at.board.view(state),
-    shapeOf(ghost),
-    ghost.row,
-    ghost.col,
-    (cell, solid): RenderCell => (solid ? { ghostOf: ghost.type } : cell)
+const typeOf = (piece: Piece) => piece.type
+const ghostOf = (piece: Piece): GhostCell => ({ ghostOf: piece.type })
+
+export const mergePiece = (board: Board, piece: Piece) =>
+  overlayPiece(board, piece, typeOf)
+
+const ghostPieceOf = R.pipe(dropToBottom, at.piece.view)
+
+export const renderBoard = (state: State) =>
+  overlayPiece(
+    overlayPiece(at.board.view(state), ghostPieceOf(state), ghostOf),
+    at.piece.view(state),
+    typeOf
   )
-  return overlay(withGhost, shapeOf(piece), piece.row, piece.col, (cell, solid) =>
-    solid ? piece.type : cell
-  )
-}
 
-export const createEmptyRow = (): readonly Cell[] =>
-  R.repeat<Cell>(EMPTY_CELL, BOARD_WIDTH)
+export const createEmptyRow = () => R.repeat<Cell>(EMPTY_CELL, BOARD_WIDTH)
 
-export const createEmptyBoard = (): Board =>
-  R.times(createEmptyRow, BOARD_HEIGHT)
+export const createEmptyBoard = () => R.times(createEmptyRow, BOARD_HEIGHT)
 
-export const clearFullRows = (
-  board: Board
-): { board: Board; cleared: number } => {
-  const kept = board.filter((row) => row.includes(EMPTY_CELL))
+export const clearFullRows = (board: Board) => {
+  const kept = board.filter(hasGap)
   const cleared = board.length - kept.length
   return { board: [...R.times(createEmptyRow, cleared), ...kept], cleared }
 }
 
-export const lineClearScore = (cleared: number, level: Level): Score =>
+export const lineClearScore = (cleared: number, level: Level) =>
   (LINES_CLEARED_TO_SCORE[cleared] ?? 0) * level
 
 export const spawn = (type: TetrominoCell): Piece => ({
@@ -142,23 +130,23 @@ export const spawn = (type: TetrominoCell): Piece => ({
   rotation: 0
 })
 
-export const createSequence = (seed: Seed): WithSeed<Sequence> => {
+export const createSequence = (seed: Seed) => {
   const { value: bag, seed: next } = shuffle(TETROMINOES, seed)
   return { value: isNonEmpty(bag) ? bag : TETROMINOES, seed: next }
 }
 
-const refill = (state: State): State => {
+const refill = (state: State) => {
   const { value, seed } = createSequence(at.seed.view(state))
   return R.pipe(at.sequence.set(value), at.seed.set(seed))(state)
 }
 
-export const spawnNext: StateTransformation = (state) => {
+export const spawnNext = (state: State) => {
   const [head, ...tail] = at.sequence.view(state)
   const spawned = at.piece.set(spawn(head))(state)
   return isNonEmpty(tail) ? at.sequence.set(tail)(spawned) : refill(spawned)
 }
 
-export const createInitialState = (seed: Seed): State => {
+export const createInitialState = (seed: Seed) => {
   const { value: sequence, seed: next } = createSequence(seed)
   return spawnNext({
     board: createEmptyBoard(),

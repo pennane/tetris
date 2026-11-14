@@ -10,23 +10,17 @@ export type Accessor<S, A> = Readonly<{
 
 export const accessor = <S, A>(lens: Lens<S, A>): Accessor<S, A> => ({
   lens,
-  view: (s) => R.view(lens, s),
-  set: (a) => (s) => R.set(lens, a, s),
-  over: (f) => (s) => R.over(lens, f, s)
+  view: R.view(lens),
+  set: R.set(lens),
+  over: R.over(lens)
 })
 
 export const prop =
   <S>() =>
-  <K extends keyof S>(key: K): Accessor<S, S[K]> =>
+  <K extends keyof S>(key: K) =>
     accessor(R.lensProp<S, K>(key))
 
 export const compose = <S, A, B>(
   outer: Accessor<S, A>,
   inner: Accessor<A, B>
-): Accessor<S, B> =>
-  accessor(
-    R.lens<S, B>(
-      (s) => inner.view(outer.view(s)),
-      (b, s) => outer.over(inner.set(b))(s)
-    )
-  )
+) => accessor(R.compose(outer.lens, inner.lens))

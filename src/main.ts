@@ -6,11 +6,12 @@ import { TICK, input, run } from './logic/logic'
 import { ticksDue } from './logic/logic.clock'
 import { KEY_TO_ACTION } from './logic/logic.constants'
 import { createInitialState, levelOf } from './logic/logic.lib'
-import type { Action, GameEvent, Msg, State, Timestamp } from './logic/logic.model'
+import type { Action, GameEvent, State, Timestamp } from './logic/logic.model'
 import { SAVE_STORAGE_KEY, fromSave, toSave } from './logic/logic.persist'
 import { MUSIC_STATE_STORAGE_KEY } from './music/music.constants'
 import { setGlobalGain, startSoundtrack } from './music/music'
 import { HIGH_SCORES_STORAGE_KEY, decodeHighScores, recordScore } from './scores'
+import { boolean } from './util/decode'
 import { freshSeed } from './util/random'
 import { load, store } from './util/storage'
 
@@ -45,7 +46,7 @@ const handleEvent = (event: GameEvent) => {
   }
 }
 
-const takeMessages = (ticks: number): Msg[] => {
+const takeMessages = (ticks: number) => {
   const action = queuedAction
   queuedAction = null
   return [...(action ? [input(action)] : []), ...R.repeat(TICK, ticks)]
@@ -94,6 +95,6 @@ musicCheckbox.addEventListener('change', () => {
   store(MUSIC_STATE_STORAGE_KEY, musicCheckbox.checked)
 })
 applyMusicSetting(
-  load(MUSIC_STATE_STORAGE_KEY, (v) => (typeof v === 'boolean' ? v : false))
+  load(MUSIC_STATE_STORAGE_KEY, boolean) ?? false
 )
 window.addEventListener('keydown', startGame)

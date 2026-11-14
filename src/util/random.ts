@@ -5,7 +5,7 @@ export type Seed = number
 const GOLDEN_GAMMA = 0x6d2b79f5
 const UINT32_RANGE = 2 ** 32
 
-export const freshSeed = (): Seed => Math.floor(Math.random() * UINT32_RANGE)
+export const freshSeed = () => Math.floor(Math.random() * UINT32_RANGE)
 
 export const nextRandom = (seed: Seed): readonly [number, Seed] => {
   const next = (seed + GOLDEN_GAMMA) | 0
@@ -16,17 +16,17 @@ export const nextRandom = (seed: Seed): readonly [number, Seed] => {
 
 export type WithSeed<T> = Readonly<{ value: T; seed: Seed }>
 
+type Keyed<T> = Readonly<{ key: number; value: T }>
+
+const withRandomKey = <T>(seed: Seed, value: T): [Seed, Keyed<T>] => {
+  const [key, next] = nextRandom(seed)
+  return [next, { key, value }]
+}
+
 export const shuffle = <T>(xs: readonly T[], seed: Seed): WithSeed<T[]> => {
-  const [nextSeed, keyed] = R.mapAccum(
-    (s: Seed, value: T): [Seed, { key: number; value: T }] => {
-      const [key, next] = nextRandom(s)
-      return [next, { key, value }]
-    },
-    seed,
-    [...xs]
-  )
+  const [next, keyed] = R.mapAccum(withRandomKey<T>, seed, xs)
   return {
-    value: [...keyed].sort((a, b) => a.key - b.key).map(({ value }) => value),
-    seed: nextSeed
+    value: R.pluck('value')(R.sortBy(R.prop('key'))(keyed)),
+    seed: next
   }
 }

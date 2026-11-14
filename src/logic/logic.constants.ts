@@ -1,7 +1,7 @@
 import * as R from 'ramda'
-import { rotate90, rotate180, rotate270 } from '../util/matrix'
+import { rotate180, rotate270, rotate90 } from '../util/matrix'
+import type { Rotation, Score, Shape, ShapeCell, Speed } from './logic.model'
 import { Action, TetrominoCell } from './logic.model'
-import type { Rotation, Score, Shape, Speed } from './logic.model'
 
 export const TICKS_PER_SECOND = 60
 export const TICK_MS = 1000 / TICKS_PER_SECOND
@@ -72,9 +72,9 @@ export const SHAPES: Readonly<
   Record<Rotation, Readonly<Record<TetrominoCell, Shape>>>
 > = {
   0: BASE_SHAPES,
-  1: R.map((s: Shape) => rotate90(s), BASE_SHAPES),
-  2: R.map((s: Shape) => rotate180(s), BASE_SHAPES),
-  3: R.map((s: Shape) => rotate270(s), BASE_SHAPES)
+  1: R.map(rotate90<ShapeCell>, BASE_SHAPES),
+  2: R.map(rotate180<ShapeCell>, BASE_SHAPES),
+  3: R.map(rotate270<ShapeCell>, BASE_SHAPES)
 }
 
 export const KEY_TO_ACTION: Readonly<Partial<Record<string, Action>>> = {
@@ -97,8 +97,9 @@ export const LINES_CLEARED_TO_SCORE: Readonly<Partial<Record<number, Score>>> =
     4: 1200
   }
 
-const countCells = (shape: Shape): Score =>
-  shape.flat().filter((cell) => cell === 1).length
+const countCells = R.pipe(R.flatten, R.sum)
 
-export const INSTANT_DROP_SCORE: Readonly<Record<TetrominoCell, Score>> =
-  R.map(countCells, BASE_SHAPES)
+export const INSTANT_DROP_SCORE: Readonly<Record<TetrominoCell, Score>> = R.map(
+  countCells,
+  BASE_SHAPES
+)

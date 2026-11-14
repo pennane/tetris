@@ -1,3 +1,4 @@
+import * as R from 'ramda'
 import type { Level } from '../logic/logic.model'
 import {
   ATTACK_SECONDS,
@@ -73,7 +74,7 @@ const playLoop = (notes: readonly Note[], getLevel: () => Level) => {
   const durationMultiplier = levelToDurationMultiplier(level)
   const arranged = notes
     .map(noteTransformerFor(level))
-    .map(noteAt.duration.over((d) => d * durationMultiplier))
+    .map(noteAt.duration.over(R.multiply(durationMultiplier)))
 
   let time = audioContext.currentTime
   let last: OscillatorNode | null = null

@@ -31,7 +31,8 @@ export type GhostCell = Readonly<{ ghostOf: TetrominoCell }>
 export type RenderCell = Cell | GhostCell
 export type RenderBoard = Matrix<RenderCell>
 
-export type Shape = Matrix<0 | 1>
+export type ShapeCell = 0 | 1
+export type Shape = Matrix<ShapeCell>
 
 export type Column = number
 export type Row = number

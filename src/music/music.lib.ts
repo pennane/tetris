@@ -16,15 +16,15 @@ export const PITCHES_ASCENDING: readonly Pitch[] = OCTAVES.flatMap((octave) =>
 
 const A4_INDEX = PITCHES_ASCENDING.indexOf('A4')
 
-export const semitoneOf = (pitch: Pitch): number =>
+export const semitoneOf = (pitch: Pitch) =>
   PITCHES_ASCENDING.indexOf(pitch)
 
-export const hz = (pitch: Pitch): number =>
+export const hz = (pitch: Pitch) =>
   A4_HZ * 2 ** ((semitoneOf(pitch) - A4_INDEX) / 12)
 
 export const transposePitch =
   (steps: number) =>
-  (pitch: Pitch): Pitch =>
+  (pitch: Pitch) =>
     PITCHES_ASCENDING[
       clamp(0, PITCHES_ASCENDING.length - 1, semitoneOf(pitch) + steps)
     ] ?? pitch

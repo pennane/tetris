@@ -94,7 +94,9 @@ const NOTE_TRANSFORMERS_FROM_LEVEL: ReadonlyArray<readonly [Level, NoteTransform
   [13, noteAt.waveform.set('square')]
 ]
 
-export const noteTransformerFor = (level: Level): NoteTransformer =>
+const andThen = (f: NoteTransformer, g: NoteTransformer) => R.pipe(f, g)
+
+export const noteTransformerFor = (level: Level) =>
   NOTE_TRANSFORMERS_FROM_LEVEL.filter(([from]) => level >= from)
     .map(([, transform]) => transform)
-    .reduce<NoteTransformer>((acc, f) => (n) => f(acc(n)), R.identity)
+    .reduce(andThen, R.identity)

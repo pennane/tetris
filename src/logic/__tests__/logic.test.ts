@@ -237,7 +237,7 @@ describe('replay', () => {
     const msgs = session(3_000)
     const stepped = msgs.reduce<{ value: State; events: GameEvent[] }>(
       (acc, msg) => {
-        const o = update(acc.value, msg)
+        const o = update(msg)(acc.value)
         return { value: o.value, events: [...acc.events, ...o.events] }
       },
       { value: createInitialState(7), events: [] }

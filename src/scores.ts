@@ -1,15 +1,14 @@
+import * as R from 'ramda'
 import type { Score } from './logic/logic.model'
+import { arrayOf, count } from './util/decode'
 
 export const HIGH_SCORES_STORAGE_KEY = 'score'
 const KEPT = 5
 
-export const decodeHighScores = (v: unknown): readonly Score[] =>
-  Array.isArray(v)
-    ? v.filter((s): s is number => typeof s === 'number' && s >= 0)
-    : []
+const highestFirst = R.descend(R.identity<Score>)
 
-export const recordScore = (
-  scores: readonly Score[],
-  score: Score
-): readonly Score[] =>
-  score > 0 ? [...scores, score].sort((a, b) => b - a).slice(0, KEPT) : scores
+export const decodeHighScores = (v: unknown): readonly Score[] =>
+  arrayOf(count)(v) ?? []
+
+export const recordScore = (scores: readonly Score[], score: Score) =>
+  score > 0 ? [...scores, score].sort(highestFirst).slice(0, KEPT) : scores

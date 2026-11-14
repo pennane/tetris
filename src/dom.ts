@@ -3,7 +3,7 @@ import { levelOf, renderBoard } from './logic/logic.lib'
 import { EMPTY_CELL } from './logic/logic.model'
 import type { Board, Piece, RenderCell, Score, State } from './logic/logic.model'
 
-const cellClass = (cell: RenderCell): string =>
+const cellClass = (cell: RenderCell) =>
   typeof cell === 'string' ? `cell ${cell}` : `cell ${cell.ghostOf} G`
 
 const rowsHtml = (rows: ReadonlyArray<ReadonlyArray<string>>) =>
@@ -33,7 +33,7 @@ export const createBoardView = (target: HTMLElement) => {
   let drawnBoard: Board | null = null
   let drawnPiece: Piece | null = null
 
-  return (state: State): void => {
+  return (state: State) => {
     if (state.board === drawnBoard && state.piece === drawnPiece) return
     drawnBoard = state.board
     drawnPiece = state.piece
@@ -53,7 +53,7 @@ export const drawStats = (
   target: HTMLElement,
   state: State,
   highScores: readonly Score[]
-): void => {
+) => {
   const [next] = state.sequence
   const preview = SHAPES[0][next].map((r) =>
     r.map((solid) => (solid ? next : EMPTY_CELL))
