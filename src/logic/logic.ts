@@ -1,5 +1,5 @@
 import * as R from 'ramda'
-import { chain, emit, map, of } from '../util/writer'
+import { chain, emit, map, of } from '../util/events'
 import { at } from './logic.lens'
 import {
   clearFullRows,

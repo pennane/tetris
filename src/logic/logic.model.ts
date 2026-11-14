@@ -1,7 +1,7 @@
 import type { NonEmpty } from '../util/fp'
 import type { Matrix } from '../util/matrix'
 import type { Seed } from '../util/random'
-import type { Writer } from '../util/writer'
+import type { WithEvents } from '../util/events'
 
 export enum Action {
   LEFT = 'LEFT',
@@ -71,7 +71,7 @@ export type GameEvent =
 
 export type Msg = Readonly<{ type: 'input'; action: Action }> | Readonly<{ type: 'tick' }>
 
-export type Outcome = Writer<State, GameEvent>
+export type Outcome = WithEvents<State, GameEvent>
 export type GameStep = (state: State) => Outcome
 
 export type StateTransformation = (state: State) => State

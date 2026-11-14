@@ -3,7 +3,7 @@ import { compose, prop } from '../accessor'
 import { overlay, rotate90, rotate270 } from '../matrix'
 import { asLongAs } from '../fp'
 import { nextRandom, shuffle } from '../random'
-import { chain, emit, map, of, type Writer } from '../writer'
+import { chain, emit, map, of, type WithEvents } from '../events'
 
 type Inner = { n: number; tag: string }
 type Outer = { inner: Inner; other: number }
@@ -58,8 +58,8 @@ describe('asLongAs', () => {
   })
 })
 
-describe('writer', () => {
-  type W = Writer<number, string>
+describe('events', () => {
+  type W = WithEvents<number, string>
   const inc = (n: number): W => ({ state: n + 1, events: [`inc ${n}`] })
   const dbl = (n: number): W => ({ state: n * 2, events: [`dbl ${n}`] })
   const m: W = { state: 3, events: ['start'] }

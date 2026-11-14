@@ -14,9 +14,9 @@ export const nextRandom = (seed: Seed): readonly [number, Seed] => {
   return [((t ^ (t >>> 14)) >>> 0) / UINT32_RANGE, next >>> 0]
 }
 
-export type Seeded<T> = Readonly<{ value: T; seed: Seed }>
+export type WithSeed<T> = Readonly<{ value: T; seed: Seed }>
 
-export const shuffle = <T>(xs: readonly T[], seed: Seed): Seeded<T[]> => {
+export const shuffle = <T>(xs: readonly T[], seed: Seed): WithSeed<T[]> => {
   const [nextSeed, keyed] = R.mapAccum(
     (s: Seed, value: T): [Seed, { key: number; value: T }] => {
       const [key, next] = nextRandom(s)

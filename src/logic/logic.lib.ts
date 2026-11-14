@@ -1,7 +1,7 @@
 import * as R from 'ramda'
 import { asLongAs, isNonEmpty } from '../util/fp'
 import { cellAt, overlay } from '../util/matrix'
-import { shuffle, type Seed, type Seeded } from '../util/random'
+import { shuffle, type Seed, type WithSeed } from '../util/random'
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
@@ -142,7 +142,7 @@ export const spawn = (type: TetrominoCell): Piece => ({
   rotation: 0
 })
 
-export const createSequence = (seed: Seed): Seeded<Sequence> => {
+export const createSequence = (seed: Seed): WithSeed<Sequence> => {
   const { value: bag, seed: next } = shuffle(TETROMINOES, seed)
   return { value: isNonEmpty(bag) ? bag : TETROMINOES, seed: next }
 }
