@@ -69,8 +69,10 @@ export const fits = (board: Board, piece: Piece) =>
 export const isValidState = (state: State) =>
   fits(at.board.view(state), at.piece.view(state))
 
-export const isFailState = (state: State) =>
+const hasLockedTopRow = (state: State) =>
   at.board.view(state)[0]?.some(isLocked) ?? false
+
+export const isFailState = R.either(hasLockedTopRow, R.complement(isValidState))
 
 const nextRotation = (r: Rotation) => ((r + 1) % 4) as Rotation
 

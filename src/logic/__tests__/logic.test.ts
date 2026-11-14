@@ -152,6 +152,18 @@ describe('events', () => {
     )
     expect(events[events.length - 1]).toEqual({ type: 'gameOver', finalScore: 500 })
   })
+
+  it('ends the game when the next piece spawns into the stack', () => {
+    const { events } = send(
+      lockable({
+        piece: { type: T.O, col: 0, row: 18, rotation: 0 },
+        board: Array<string>(19).fill('....ZZZZ..'),
+        sequence: [T.T, T.L]
+      }),
+      TICK
+    )
+    expect(events.map((e) => e.type)).toContain('gameOver')
+  })
 })
 
 describe('locking', () => {
