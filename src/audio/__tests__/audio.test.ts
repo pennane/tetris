@@ -2,19 +2,28 @@ import { describe, expect, it } from 'vitest'
 import * as R from 'ramda'
 import { MAX_LEVEL, MIN_LEVEL } from '../../logic/logic.constants'
 import {
+  activeTracks,
   addLength,
   fullCharacterFrom,
   hz,
   notesAt,
+  onBus,
   semitoneOf,
   songLength,
-  stepSecondsFor,
   transposePitch,
   valueAt,
   voicePeakAt
 } from '../audio.lib'
-import { BASS_VOLUME } from '../audio.constants'
-import { BASS, DRIVE_BY_LEVEL, GAPS, LEAD, SONG, driveFor } from '../audio.song'
+import {
+  ARPEGGIO,
+  BASS,
+  DRIVE_BY_LEVEL,
+  GAPS,
+  LEAD,
+  SONG,
+  driveFor,
+  stepSecondsFor
+} from '../audio.song'
 import type { Instrument, LevelCurve, Note, PlayMode, Pitch, Track } from '../audio.model'
 
 const [[cleanLevelsEnd]] = DRIVE_BY_LEVEL
@@ -77,9 +86,10 @@ describe('melody arrangement', () => {
 })
 
 describe('tempo', () => {
-  it('keeps the legacy tempo curve', () => {
-    expect(stepSecondsFor(MIN_LEVEL)).toBeCloseTo(0.3125)
-    expect(stepSecondsFor(MAX_LEVEL)).toBeCloseTo(0.025)
+  it('never slows down as levels rise', () => {
+    R.range(MIN_LEVEL, MAX_LEVEL).forEach((level) =>
+      expect(stepSecondsFor(level + 1)).toBeLessThanOrEqual(stepSecondsFor(level))
+    )
   })
 })
 
@@ -101,16 +111,22 @@ describe('drive', () => {
 
   const isCleanLevel = R.gte(cleanLevelsEnd)
 
-  it('sums the opening voices at full volume', () => {
-    expect(voicePeakAt(SONG, MIN_LEVEL)).toBeCloseTo(1 + BASS_VOLUME)
+  it('routes only the lead voices through the shaper', () => {
+    expect(activeTracks(SONG, MAX_LEVEL).filter(onBus('driven'))).toEqual([LEAD, GAPS])
   })
 
   it('never clips the shaper input while drive is clean', () => {
     R.range(MIN_LEVEL, MAX_LEVEL + 1)
       .filter(isCleanLevel)
       .forEach((level) =>
-        expect(voicePeakAt(SONG, level) * driveFor(level)).toBeLessThanOrEqual(1)
+        expect(voicePeakAt(SONG, level, 'driven') * driveFor(level)).toBeLessThanOrEqual(1)
       )
+  })
+
+  it('never clips the clean bus', () => {
+    R.range(MIN_LEVEL, MAX_LEVEL + 1).forEach((level) =>
+      expect(voicePeakAt(SONG, level, 'clean')).toBeLessThanOrEqual(1)
+    )
   })
 })
 
@@ -120,9 +136,11 @@ describe('harmony', () => {
     semitoneOf(track.arrangeFor(level)(probe).pitch) - semitoneOf(probe.pitch)
 
   it.each(R.range(MIN_LEVEL, MAX_LEVEL + 1))(
-    'keeps the bass in the lead key at level %i',
+    'keeps every voice in the lead key at level %i',
     (level) => {
-      expect(R.mathMod(offsetOf(LEAD, level) - offsetOf(BASS, level), 12)).toBe(0)
+      [BASS, ARPEGGIO].forEach((track) =>
+        expect(R.mathMod(offsetOf(LEAD, level) - offsetOf(track, level), 12)).toBe(0)
+      )
     }
   )
 })
@@ -154,6 +172,16 @@ describe('melody gaps', () => {
     expect(n?.volume).toBeCloseTo(volume)
     expect(n?.mode).toBe(mode)
     expect(n?.instrument).toBe(instrument)
+  })
+})
+
+describe('layers', () => {
+  it('adds a layer at every clean level', () => {
+    R.range(MIN_LEVEL, cleanLevelsEnd).forEach((level) =>
+      expect(activeTracks(SONG, level + 1).length).toBeGreaterThan(
+        activeTracks(SONG, level).length
+      )
+    )
   })
 })
 

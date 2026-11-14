@@ -8,19 +8,27 @@ import {
 } from './audio.constants'
 import { cueFor, cueSeconds } from './audio.cues'
 import type { Cue } from './audio.cues'
-import { notesAt, songLength, stepSecondsFor, stepsOf } from './audio.lib'
-import type { Seconds, Steps } from './audio.model'
-import { SONG, driveFor } from './audio.song'
+import { notesAt, onBus, songLength, stepsOf } from './audio.lib'
+import type { Seconds, Song, Steps } from './audio.model'
+import { SONG, driveFor, drivenGainFor, stepSecondsFor } from './audio.song'
 import {
   audioContext,
+  cleanBus,
+  drivenBus,
   effectsBus,
-  musicBus,
+  musicOutput,
   play,
   setDrive,
+  setDrivenGain,
   setMasterGain
 } from './audio.synth'
 
 const SONG_LENGTH = songLength(SONG)
+
+const BUSES: readonly (readonly [Song, AudioNode])[] = [
+  [SONG.filter(onBus('driven')), drivenBus],
+  [SONG.filter(onBus('clean')), cleanBus]
+]
 
 let step: Steps = 0
 let nextStepTime: Seconds = 0
@@ -35,8 +43,11 @@ const trackSounding = (source: AudioScheduledSourceNode) => {
 const scheduleStep = (level: Level) => {
   const stepSeconds = stepSecondsFor(level)
   setDrive(driveFor(level))
-  for (const note of notesAt(SONG, level, step)) {
-    trackSounding(play(note, nextStepTime, note.length * stepSeconds, musicBus))
+  setDrivenGain(drivenGainFor(level))
+  for (const [tracks, bus] of BUSES) {
+    for (const note of notesAt(tracks, level, step)) {
+      trackSounding(play(note, nextStepTime, note.length * stepSeconds, bus))
+    }
   }
   nextStepTime += stepSeconds
   step = (step + 1) % SONG_LENGTH
@@ -72,10 +83,10 @@ const restartMusicAfter = (pause: Seconds) => {
   const now = audioContext.currentTime
   const fadeEnd = now + MUSIC_FADE_SECONDS
   const restartAt = now + pause
-  musicBus.gain.cancelScheduledValues(now)
-  musicBus.gain.setValueAtTime(musicBus.gain.value, now)
-  musicBus.gain.linearRampToValueAtTime(0, fadeEnd)
-  musicBus.gain.setValueAtTime(MUSIC_BUS_GAIN, restartAt)
+  musicOutput.gain.cancelScheduledValues(now)
+  musicOutput.gain.setValueAtTime(musicOutput.gain.value, now)
+  musicOutput.gain.linearRampToValueAtTime(0, fadeEnd)
+  musicOutput.gain.setValueAtTime(MUSIC_BUS_GAIN, restartAt)
   sounding.forEach(stopAt(fadeEnd))
   sounding.clear()
   step = 0

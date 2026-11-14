@@ -39,7 +39,10 @@ export type Rest = null
 export type NoteOrRest = Note | Rest
 export type NoteTransformer = (note: Note) => Note
 
+export type Bus = 'driven' | 'clean'
+
 export type Track = Readonly<{
+  bus: Bus
   joinsAt: Level
   notes: readonly NoteOrRest[]
   arrangeFor: (level: Level) => NoteTransformer

@@ -1,16 +1,11 @@
-import { MAX_LEVEL, MIN_LEVEL } from '../logic/logic.constants'
+import * as R from 'ramda'
 import type { Level } from '../logic/logic.model'
 import { clamp, mapToNewRange } from '../util/fp'
-import * as R from 'ramda'
-import {
-  A4_HZ,
-  BASE_STEP_SECONDS,
-  DURATION_MULTIPLIER_AT_MAX_LEVEL,
-  DURATION_MULTIPLIER_AT_MIN_LEVEL
-} from './audio.constants'
+import { A4_HZ } from './audio.constants'
 import { noteAt } from './audio.lens'
 import { NOTE_NAMES, OCTAVES } from './audio.model'
 import type {
+  Bus,
   LevelCurve,
   Note,
   NoteOrRest,
@@ -41,20 +36,6 @@ export const transposePitch =
 
 export const transpose = (steps: number) =>
   noteAt.pitch.over(transposePitch(steps))
-
-export const levelToDurationMultiplier = (level: Level) =>
-  mapToNewRange(
-    level,
-    MIN_LEVEL,
-    MAX_LEVEL,
-    DURATION_MULTIPLIER_AT_MIN_LEVEL,
-    DURATION_MULTIPLIER_AT_MAX_LEVEL
-  )
-
-export const stepSecondsFor = R.pipe(
-  levelToDurationMultiplier,
-  R.multiply(BASE_STEP_SECONDS)
-)
 
 export const stepsOf = (n: NoteOrRest) => n?.length ?? 1
 
@@ -115,8 +96,10 @@ const peakVolumeOf = (level: Level) => (track: Track) =>
     .map(R.pipe(track.arrangeFor(level), noteAt.volume.view))
     .reduce(R.max<number>, 0)
 
-export const voicePeakAt = (song: Song, level: Level) =>
-  R.sum(activeTracks(song, level).map(peakVolumeOf(level)))
+export const onBus = (bus: Bus) => (track: Track) => track.bus === bus
+
+export const voicePeakAt = (song: Song, level: Level, bus: Bus) =>
+  R.sum(activeTracks(song, level).filter(onBus(bus)).map(peakVolumeOf(level)))
 
 export const createDistortionCurve = (amount: number) => {
   const samples = 44100

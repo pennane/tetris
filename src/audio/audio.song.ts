@@ -1,9 +1,16 @@
 import * as R from 'ramda'
-import { BASS_VOLUME } from './audio.constants'
+import {
+  ARPEGGIO_VOLUME,
+  BASS_VOLUME,
+  HAT_VOLUME,
+  KICK_VOLUME,
+  SNARE_VOLUME
+} from './audio.constants'
 import { transpose, transposePitch, valueAt } from './audio.lib'
 import { noteAt } from './audio.lens'
 import type { Level } from '../logic/logic.model'
 import type {
+  Instrument,
   LevelCurve,
   Note,
   NoteOrRest,
@@ -11,7 +18,8 @@ import type {
   Pitch,
   Song,
   Steps,
-  Track
+  Track,
+  Volume
 } from './audio.model'
 
 const note = (pitch: Pitch, length: Steps = 1): Note => ({
@@ -51,6 +59,47 @@ const bassBar = (root: Pitch) =>
 
 const BASS_ROOTS: readonly Pitch[] = ['E1', 'A1', 'E1', 'A1', 'D1', 'C1', 'E1', 'A1']
 
+const CHORDS: readonly (readonly [Pitch, Pitch, Pitch])[] = [
+  ['E4', 'G#4', 'B4'],
+  ['A4', 'C5', 'E5'],
+  ['E4', 'G#4', 'B4'],
+  ['A4', 'C5', 'E5'],
+  ['D4', 'F4', 'A4'],
+  ['C4', 'E4', 'G4'],
+  ['E4', 'G#4', 'B4'],
+  ['A4', 'C5', 'E5']
+]
+
+const arpeggioNote = R.pipe(
+  R.unary(note),
+  noteAt.volume.set(ARPEGGIO_VOLUME),
+  noteAt.mode.set('decay')
+)
+
+const arpeggioBar = ([root, third, fifth]: readonly [Pitch, Pitch, Pitch]) =>
+  [root, third, fifth, third, root, third, fifth, third].map(arpeggioNote)
+
+const percussion =
+  (instrument: Instrument, pitch: Pitch, volume: Volume): Note => ({
+    pitch,
+    length: 1,
+    volume,
+    mode: 'decay',
+    instrument
+  })
+
+const KICK = percussion('triangle', 'A1', KICK_VOLUME)
+const SNARE = percussion('noise', 'C4', SNARE_VOLUME)
+const HAT = percussion('noise', 'C4', HAT_VOLUME)
+
+const HAT_BAR: readonly NoteOrRest[] = [_, HAT, _, HAT, _, HAT, _, HAT]
+const DRUM_BAR: readonly NoteOrRest[] = [KICK, _, SNARE, _, KICK, _, SNARE, _]
+const BARS = BASS_ROOTS.length
+
+const everyBar = (bar: readonly NoteOrRest[]) => R.flatten(R.repeat(bar, BARS))
+
+const unchanged = R.always<NoteTransformer>(R.identity)
+
 type LevelChanges = ReadonlyArray<readonly [Level, NoteTransformer]>
 
 const KEY_FROM_LEVEL: LevelChanges = [
@@ -88,14 +137,37 @@ const leadVoice = R.pipe(transpose(-24), noteAt.mode.set('decay'))
 const voiceLead = (n: NoteOrRest) => n && leadVoice(n)
 
 export const LEAD: Track = {
+  bus: 'driven',
   joinsAt: 1,
   notes: MELODY.map(voiceLead),
   arrangeFor: melodyArrangementFor
 }
 
 export const BASS: Track = {
+  bus: 'clean',
   joinsAt: 1,
   notes: BASS_ROOTS.flatMap(bassBar),
+  arrangeFor: keyFor
+}
+
+export const HATS: Track = {
+  bus: 'clean',
+  joinsAt: 2,
+  notes: everyBar(HAT_BAR),
+  arrangeFor: unchanged
+}
+
+export const DRUMS: Track = {
+  bus: 'clean',
+  joinsAt: 3,
+  notes: everyBar(DRUM_BAR),
+  arrangeFor: unchanged
+}
+
+export const ARPEGGIO: Track = {
+  bus: 'clean',
+  joinsAt: 4,
+  notes: CHORDS.flatMap(arpeggioBar),
   arrangeFor: keyFor
 }
 
@@ -105,12 +177,13 @@ const gapsAround = (n: NoteOrRest): readonly NoteOrRest[] =>
   n ? R.repeat(null, n.length) : [GAP_TONE]
 
 export const GAPS: Track = {
-  joinsAt: 5,
+  bus: 'driven',
+  joinsAt: 6,
   notes: MELODY.flatMap(gapsAround),
   arrangeFor: melodyArrangementFor
 }
 
-export const SONG: Song = [LEAD, BASS, GAPS]
+export const SONG: Song = [LEAD, BASS, HATS, DRUMS, ARPEGGIO, GAPS]
 
 export const DRIVE_BY_LEVEL: LevelCurve = [
   [4, 0.5],
@@ -118,3 +191,19 @@ export const DRIVE_BY_LEVEL: LevelCurve = [
 ]
 
 export const driveFor = valueAt(DRIVE_BY_LEVEL)
+
+export const DRIVEN_GAIN_BY_LEVEL: LevelCurve = [
+  [4, 1],
+  [5, 0.5],
+  [8, 1]
+]
+
+export const drivenGainFor = valueAt(DRIVEN_GAIN_BY_LEVEL)
+
+export const STEP_SECONDS_BY_LEVEL: LevelCurve = [
+  [1, 0.3125],
+  [6, 0.2],
+  [15, 0.11]
+]
+
+export const stepSecondsFor = valueAt(STEP_SECONDS_BY_LEVEL)

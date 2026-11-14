@@ -20,15 +20,21 @@ const gainNode = (gain: number) => {
 }
 
 const master = gainNode(0)
-export const musicBus = gainNode(MUSIC_BUS_GAIN)
+export const musicOutput = gainNode(MUSIC_BUS_GAIN)
+export const drivenBus = gainNode(1)
+export const cleanBus = gainNode(1)
 export const effectsBus = gainNode(EFFECTS_BUS_GAIN)
+const drivenOutput = gainNode(1)
 const distortion = audioContext.createWaveShaper()
 distortion.oversample = 'none'
 const reverb = audioContext.createConvolver()
 
-musicBus.connect(distortion)
+drivenBus.connect(distortion)
 distortion.connect(reverb)
-reverb.connect(master)
+reverb.connect(drivenOutput)
+drivenOutput.connect(musicOutput)
+cleanBus.connect(musicOutput)
+musicOutput.connect(master)
 effectsBus.connect(master)
 master.connect(audioContext.destination)
 
@@ -69,6 +75,10 @@ export const setDrive = (amount: number) => {
   if (amount === currentDrive) return
   currentDrive = amount
   distortion.curve = createDistortionCurve(amount)
+}
+
+export const setDrivenGain = (gain: number) => {
+  drivenOutput.gain.value = gain
 }
 
 export const setMasterGain = (gain: number) => {
