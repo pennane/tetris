@@ -142,8 +142,10 @@ const refill = (state: State) => {
 
 export const spawnNext = (state: State) => {
   const [head, ...tail] = at.sequence.view(state)
-  const spawned = at.piece.set(spawn(head))(state)
-  return isNonEmpty(tail) ? at.sequence.set(tail)(spawned) : refill(spawned)
+  return R.pipe(
+    at.piece.set(spawn(head)),
+    isNonEmpty(tail) ? at.sequence.set(tail) : refill
+  )(state)
 }
 
 export const createInitialState = (seed: Seed) => {

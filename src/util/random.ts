@@ -26,7 +26,7 @@ const withRandomKey = <T>(seed: Seed, value: T): [Seed, Keyed<T>] => {
 export const shuffle = <T>(xs: readonly T[], seed: Seed): WithSeed<T[]> => {
   const [next, keyed] = R.mapAccum(withRandomKey<T>, seed, xs)
   return {
-    value: R.pluck('value')(R.sortBy(R.prop('key'))(keyed)),
+    value: R.pipe(R.sortBy<Keyed<T>>(R.prop('key')), R.map(R.prop('value')))(keyed),
     seed: next
   }
 }
