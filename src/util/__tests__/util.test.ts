@@ -3,7 +3,7 @@ import { compose, prop } from '../accessor'
 import { overlay, rotate90, rotate270 } from '../matrix'
 import { asLongAs } from '../fp'
 import { nextRandom, shuffle } from '../random'
-import { foldK, pipeK, pure, tell, type Step } from '../writer'
+import { foldK, of, pipeK, tell, type Step } from '../writer'
 
 type Inner = { n: number; tag: string }
 type Outer = { inner: Inner; other: number }
@@ -62,9 +62,9 @@ describe('writer', () => {
   const inc: Step<number, string> = (n) => ({ state: n + 1, events: [`inc ${n}`] })
   const dbl: Step<number, string> = (n) => ({ state: n * 2, events: [] })
 
-  it('has pure as identity on both sides', () => {
-    expect(pipeK(pure, inc)(1)).toEqual(inc(1))
-    expect(pipeK(inc, pure)(1)).toEqual(inc(1))
+  it('has of as identity on both sides', () => {
+    expect(pipeK(of, inc)(1)).toEqual(inc(1))
+    expect(pipeK(inc, of)(1)).toEqual(inc(1))
   })
 
   it('is associative and accumulates events in order', () => {
