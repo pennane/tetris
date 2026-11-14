@@ -1,4 +1,4 @@
-import { BOARD_HEIGHT } from '../logic.constants'
+import { BOARD_HEIGHT, LOCK_DELAY_TICKS } from '../logic.constants'
 import { EMPTY_CELL, TetrominoCell } from '../logic.model'
 import type {
   Board,
@@ -35,6 +35,8 @@ export const makeState = (o: {
   board?: string[]
   sequence?: Sequence
   nextFall?: number
+  lockTimer?: number
+  lockResets?: number
   score?: number
   linesCleared?: number
 }): State => ({
@@ -42,6 +44,11 @@ export const makeState = (o: {
   piece: o.piece,
   sequence: o.sequence ?? [TetrominoCell.T, TetrominoCell.S],
   nextFall: o.nextFall ?? 30,
+  lock: {
+    timer: o.lockTimer ?? LOCK_DELAY_TICKS,
+    resets: o.lockResets ?? 0,
+    lowestRow: o.piece.row
+  },
   score: o.score ?? 0,
   linesCleared: o.linesCleared ?? 0,
   seed: 1
@@ -60,3 +67,5 @@ export const scoreOf = (s: State) => s.score
 export const linesOf = (s: State) => s.linesCleared
 export const nextFallOf = (s: State) => s.nextFall
 export const sequenceOf = (s: State) => s.sequence
+export const lockedPieces = (o: Outcome) =>
+  o.events.filter((e) => e.type === 'pieceLocked').length

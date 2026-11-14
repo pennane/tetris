@@ -1,7 +1,7 @@
 import * as D from '../util/decode'
 import { isNonEmpty } from '../util/fp'
 import { BOARD_HEIGHT, BOARD_WIDTH, TETROMINOES } from './logic.constants'
-import { fits } from './logic.lib'
+import { FRESH_LOCK, fits } from './logic.lib'
 import { EMPTY_CELL } from './logic.model'
 import type { Board, Piece, State, TetrominoCell } from './logic.model'
 
@@ -36,10 +36,16 @@ const save = D.struct({
 
 export type Save = NonNullable<ReturnType<typeof save>>
 
-export const toSave = (state: State): Save => ({ version: SAVE_VERSION, ...state })
+export const toSave = ({ lock: _, ...state }: State): Save => ({
+  version: SAVE_VERSION,
+  ...state
+})
 
 const pieceFits = (s: { board: Board; piece: Piece }) => fits(s.board, s.piece)
 
-const toState = ({ version: _, ...state }: Save): State => state
+const toState = ({ version: _, ...state }: Save): State => ({
+  ...state,
+  lock: FRESH_LOCK
+})
 
 export const fromSave = D.map(toState)(D.refine(save, pieceFits))

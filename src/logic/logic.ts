@@ -1,5 +1,6 @@
 import * as R from 'ramda'
 import { chain, emit, map, of } from '../util/events'
+import { LOCK_DELAY_TICKS, MAX_LOCK_RESETS } from './logic.constants'
 import { at } from './logic.lens'
 import {
   addScore,
@@ -7,15 +8,16 @@ import {
   createInitialState,
   instantDrop,
   isFailState,
+  isGrounded,
   isValidState,
   levelOf,
   lineClearScore,
+  markLowest,
   mergePiece,
   moveDown,
   moveLeft,
   moveRight,
   rotate,
-  shouldPlaceDown,
   spawnNext,
   speedOf
 } from './logic.lib'
@@ -33,13 +35,21 @@ export const input = (action: Action): Msg => ({ type: 'input', action })
 
 const quiet = of<State, GameEvent>
 
+const restartLockDelay = at.lockTimer.set(LOCK_DELAY_TICKS)
+const hasResetsLeft = R.pipe(at.lockResets.view, R.gt(MAX_LOCK_RESETS))
+const canResetLock = R.both(isGrounded, hasResetsLeft)
+const resetLock = R.pipe(restartLockDelay, at.lockResets.over(R.inc))
+
 const attempt = (move: StateTransformation) =>
   R.when(R.pipe(move, isValidState), move)
 
+const adjust = (move: StateTransformation) =>
+  attempt(R.pipe(R.when(canResetLock, resetLock), move))
+
 const MOVES: Readonly<Record<Action, StateTransformation>> = {
-  [Action.ROTATE]: attempt(rotate),
-  [Action.LEFT]: attempt(moveLeft),
-  [Action.RIGHT]: attempt(moveRight),
+  [Action.ROTATE]: adjust(rotate),
+  [Action.LEFT]: adjust(moveLeft),
+  [Action.RIGHT]: adjust(moveRight),
   [Action.DOWN]: attempt(moveDown),
   [Action.JUMP]: attempt(instantDrop)
 }
@@ -80,16 +90,29 @@ const isFallDue = R.pipe(at.nextFall.view, R.equals(0))
 const resetFallTimer = (state: State) => at.nextFall.set(speedOf(state))(state)
 const countDown = R.ifElse(isFallDue, resetFallTimer, at.nextFall.over(R.dec))
 
-const fall = R.ifElse(
-  isFallDue,
-  R.ifElse(shouldPlaceDown, lockPiece, R.pipe(moveDown, quiet)),
-  quiet
+const isLockDue = R.pipe(at.lockTimer.view, R.gte(0))
+
+const settle = R.ifElse(
+  isGrounded,
+  R.pipe(at.lockTimer.over(R.dec), R.ifElse(isLockDue, lockPiece, quiet)),
+  R.pipe(restartLockDelay, quiet)
 )
 
-const gravity = R.pipe(countDown, fall)
+const fall = R.when(R.both(isFallDue, R.complement(isGrounded)), moveDown)
 
-export const update = (msg: Msg) =>
+const gravity = R.pipe(countDown, settle, map(fall))
+
+const isBelowLowest = (state: State) =>
+  at.pieceRow.view(state) > at.lowestRow.view(state)
+
+const reachLowest = R.pipe(markLowest, at.lockResets.set(0), restartLockDelay)
+
+const trackLowest = R.when(isBelowLowest, reachLowest)
+
+const respond = (msg: Msg) =>
   msg.type === 'tick' ? gravity : R.pipe(MOVES[msg.action], quiet)
+
+export const update = (msg: Msg) => R.pipe(respond(msg), map(trackLowest))
 
 const applyMsg = (outcome: Outcome, msg: Msg) => chain(update(msg))(outcome)
 

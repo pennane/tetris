@@ -7,6 +7,9 @@ export const TICKS_PER_SECOND = 60
 export const TICK_MS = 1000 / TICKS_PER_SECOND
 export const MAX_TICKS_PER_FRAME = 4
 
+export const LOCK_DELAY_TICKS = TICKS_PER_SECOND / 2
+export const MAX_LOCK_RESETS = 15
+
 export const BOARD_WIDTH = 10
 export const BOARD_HEIGHT = 20
 export const SPAWN_COLUMN = 4

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as R from 'ramda'
 import { TICK, input, run, update } from '../logic'
+import { LOCK_DELAY_TICKS, MAX_LOCK_RESETS } from '../logic.constants'
 import { createInitialState } from '../logic.lib'
 import { Action, TetrominoCell as T } from '../logic.model'
 import type { GameEvent, Msg, State } from '../logic.model'
@@ -8,6 +9,7 @@ import {
   send,
   boardRows,
   linesOf,
+  lockedPieces,
   makeState,
   nextFallOf,
   pieceOf,
@@ -82,7 +84,7 @@ describe('events', () => {
   const lockable = (o: Partial<Parameters<typeof makeState>[0]> = {}) =>
     makeState({
       piece: { type: T.I, col: 6, row: 18, rotation: 0 },
-      nextFall: 1,
+      lockTimer: 1,
       ...o
     })
 
@@ -132,7 +134,6 @@ describe('locking', () => {
     const dropped = step(s, input(Action.JUMP))
     expect(pieceOf(dropped).row).toBe(18)
     expect(scoreOf(dropped)).toBe(4)
-    expect(nextFallOf(dropped)).toBe(1)
 
     const locked = step(dropped, TICK)
     expect(boardRows(locked).slice(-2)).toEqual(['OO........', 'OO........'])
@@ -144,7 +145,7 @@ describe('locking', () => {
     const s = makeState({
       piece: { type: T.O, col: 0, row: 18, rotation: 0 },
       sequence: [T.L],
-      nextFall: 1
+      lockTimer: 1
     })
     const locked = step(s, TICK)
     expect(pieceOf(locked).type).toBe(T.L)
@@ -157,7 +158,7 @@ describe('locking', () => {
     const s = makeState({
       piece: { type: T.I, col: 6, row: 18, rotation: 0 },
       board: ['ZZZZZZ....'],
-      nextFall: 1
+      lockTimer: 1
     })
     const locked = step(s, TICK)
     expect(boardRows(locked).every((r) => r === '..........')).toBe(true)
@@ -170,7 +171,7 @@ describe('locking', () => {
       piece: { type: T.O, col: 8, row: 18, rotation: 0 },
       board: ['ZZZZZZZZ..', 'ZZZZZZZZ..'],
       linesCleared: 10,
-      nextFall: 1
+      lockTimer: 1
     })
     const locked = step(s, TICK)
     expect(scoreOf(locked)).toBe(100 * 2)
@@ -181,7 +182,7 @@ describe('locking', () => {
     const s = makeState({
       piece: { type: T.I, col: 6, row: 18, rotation: 0 },
       board: ['S.........', 'ZZZZZZ....'],
-      nextFall: 1
+      lockTimer: 1
     })
     const locked = step(s, TICK)
     expect(boardRows(locked).slice(-1)).toEqual(['S.........'])
@@ -192,7 +193,8 @@ describe('locking', () => {
       const s = makeState({
         piece: { type: T.O, col: 0, row: 18, rotation: 0 },
         linesCleared,
-        nextFall: 1
+        nextFall: 1,
+        lockTimer: 1
       })
       return nextFallOf(step(s, TICK, TICK))
     }
@@ -208,12 +210,89 @@ describe('locking', () => {
       board: Array<string>(18).fill(filler),
       score: 500,
       linesCleared: 3,
-      nextFall: 1
+      lockTimer: 1
     })
     const over = step(s, TICK)
     expect(scoreOf(over)).toBe(0)
     expect(linesOf(over)).toBe(0)
     expect(boardRows(over).every((r) => r === '..........')).toBe(true)
+  })
+})
+
+describe('lock delay', () => {
+  const ticks = (n: number) => R.repeat(TICK, n)
+  const grounded = (o: Partial<Parameters<typeof makeState>[0]> = {}) =>
+    makeState({
+      piece: { type: T.O, col: 4, row: 18, rotation: 0 },
+      nextFall: 1000,
+      ...o
+    })
+
+  it('keeps a grounded piece movable until the delay runs out', () => {
+    const s = grounded()
+    expect(lockedPieces(send(s, ...ticks(LOCK_DELAY_TICKS - 1)))).toBe(0)
+    expect(lockedPieces(send(s, ...ticks(LOCK_DELAY_TICKS)))).toBe(1)
+  })
+
+  it('locks a piece that lands at speed only after the delay', () => {
+    const s = grounded({ piece: { type: T.O, col: 4, row: 17, rotation: 0 }, nextFall: 1 })
+    expect(lockedPieces(send(s, ...ticks(LOCK_DELAY_TICKS)))).toBe(0)
+  })
+
+  it('restarts the delay when a grounded piece moves', () => {
+    const s = grounded()
+    const moved = [...ticks(20), input(Action.RIGHT)]
+    expect(lockedPieces(send(s, ...moved, ...ticks(LOCK_DELAY_TICKS - 1)))).toBe(0)
+    expect(lockedPieces(send(s, ...moved, ...ticks(LOCK_DELAY_TICKS)))).toBe(1)
+  })
+
+  it('restarts the delay when a grounded piece rotates', () => {
+    const s = grounded({ piece: { type: T.T, col: 4, row: 17, rotation: 2 } })
+    const rotated = [...ticks(20), input(Action.ROTATE)]
+    expect(lockedPieces(send(s, ...rotated, ...ticks(LOCK_DELAY_TICKS - 1)))).toBe(0)
+  })
+
+  it('stops restarting the delay once the resets run out', () => {
+    const last = grounded({ lockTimer: 1, lockResets: MAX_LOCK_RESETS - 1 })
+    expect(lockedPieces(send(last, input(Action.RIGHT), TICK))).toBe(0)
+    const spent = grounded({ lockTimer: 1, lockResets: MAX_LOCK_RESETS })
+    expect(lockedPieces(send(spent, input(Action.RIGHT), TICK))).toBe(1)
+  })
+
+  it('restores the delay and resets when the piece reaches a new lowest row', () => {
+    const s = grounded({
+      piece: { type: T.O, col: 0, row: 16, rotation: 0 },
+      board: ['ZZ........', 'ZZ........'],
+      lockTimer: 1,
+      lockResets: MAX_LOCK_RESETS
+    })
+    const offTheLedge = [
+      input(Action.RIGHT),
+      input(Action.RIGHT),
+      input(Action.DOWN),
+      input(Action.DOWN)
+    ]
+    expect(step(s, ...offTheLedge).lock).toEqual({
+      timer: LOCK_DELAY_TICKS,
+      resets: 0,
+      lowestRow: 18
+    })
+    expect(lockedPieces(send(s, ...offTheLedge, TICK))).toBe(0)
+  })
+
+  it('does not lock on a soft drop', () => {
+    expect(lockedPieces(send(grounded({ lockTimer: 1 }), input(Action.DOWN)))).toBe(0)
+  })
+
+  it('locks a hard drop on the next tick without waiting', () => {
+    const s = grounded({ piece: { type: T.O, col: 4, row: 0, rotation: 0 } })
+    expect(lockedPieces(send(s, input(Action.JUMP), TICK))).toBe(1)
+  })
+
+  it('gives each new piece a fresh delay', () => {
+    const s = grounded({ lockTimer: 1, lockResets: MAX_LOCK_RESETS })
+    const next = step(s, TICK)
+    expect(next.lock).toEqual({ timer: LOCK_DELAY_TICKS, resets: 0, lowestRow: 0 })
   })
 })
 
